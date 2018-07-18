@@ -1,2 +1,2 @@
 # dl-probprog-genlite
-Experiments and an extended abstract introducing deep learning for inference in GenLite
+Extended abstract on deep learning for inference in GenLite, highlighting combination of custom Monte Carlo and custom deep learning based proposals.
