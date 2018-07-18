@@ -47,12 +47,12 @@ Discuss vectorized (batched) training.
 \centering
     \includegraphics[width=0.7\textwidth]{images/tf-integration-schematic.pdf}
     \caption{
-Reverse-mode AD in GenLite interoperates with TensorFlow functions.
-A TensorFlow function produces a single element on the reverse-mode AD tape.
-During the backward pass (solid lines), we receive the gradient with respect to the output (\texttt{@output}) of the TensorFlow function; TensorFlow is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
+Reverse-mode AD in GenLite interoperates with `GenLite TensorFlow functions', which are blocks of functional TensorFlow (TF) code with inputs (corresponding to TF placeholders), trainable parameters (corresponding to TF variables), and an output, that are invoked by GenLite generative functions.
+Each invocation of a TF function produces a single element on GenLite's reverse-mode AD tape.
+During the backward pass (solid lines), we receive the gradient with respect to the output (\texttt{@output}) of the TF function; TF is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
 The gradients with respect to the parameters are accumulated across multiple backward passes, until an parameter update is performed.
-A parameter update (dashed line) changes the parameter values using the accumulated gradient (in addition to any update-specific state), and resets the gradient accumulators to zero.
-Parameter updates are TensorFlow operations implemented by user, defined externally from the TensorFlow function itself.
+A parameter update (dashed line) changes the parameter values using the accumulated gradient (in addition to state of the update operation itself), and resets the gradient accumulators to zero.
+Parameter updates are TF computations that are defined by the user separately from the TF function itself.
 }
     \label{fig:tf-integration-schematic}
 \end{figure}

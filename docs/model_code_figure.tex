@@ -57,6 +57,9 @@ model = @gen function()
 end
 \end{lstlisting}
 \end{minipage}
-\caption{Generative function for a generative model of blurry images that contain a single letter at a random location, rotation, and size. Addresses of random choices are shown in green.}
+\caption{Generative function for a generative model (\texttt{model}) of blurry images that contain a single letter at a random location, rotation, and size.
+Addresses of random choices are shown in green.
+The model uses Cairo.jl, a Julia package that wraps the Cairo graphics library, to render letters (see \texttt{render}).
+}
 \label{fig:model-code-figure}
 \end{figure}
