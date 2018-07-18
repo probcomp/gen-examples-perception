@@ -6,10 +6,14 @@
 \usepackage{textcomp}
 \usepackage[usenames,dvipsnames,svgnames]{xcolor}
 \usepackage{graphicx}
+\usepackage[subrefformat=parens]{subcaption}
+
+\newcommand{\expr}[0]{\texttt{<expr>}}
+\newcommand{\address}[0]{\texttt{<address>}}
 
 \input{genlisting}
 
-\title{Combining custom deep learning and Monte Carlo for inference in probabilistic programs}
+\title{Customizable deep learning and Monte Carlo for probabilistic inference using probabilistic programs}
 
 \begin{document}
 
@@ -19,27 +23,59 @@
 
 \end{abstract}
 
-\section{Background: Programmable Inference in Probabilistic Programs}
-Introduce GenLite.
+\section{Introduction}
 
-\subsection{Generative Functions}
-Introduce generative functions.
+Contributions:
+\begin{enumerate}
+\item A universal probabilistic programming system that combines programmable Monte Carlo inference with scalable and customizable deep learning.
+\item We show how to express data-driven proposals as probabilistic programs that embed custom deep neural networks, and how to train these proposals on data simulated from a generative model.
+\item We show how a simple combination of model-based Monte Carlo and deep learning can improve upon pure deep learning based inference.
+\end{enumerate}
 
-\subsection{Using Generative Functions to Define Proposal Distributions}
+\section{Background: Programmable Inference in GenLite}
+GenLite \cite{TODO} is a flexible probabilistic programming language designed to support user-programmable inference.
+This section provides a very brief introduction to GenLite.
+GenLite is embedded in Julia \cite{TODO}.
+In GenLite, users first express a probabilistic generative model as a \emph{generative function}, which is written in an embedded DSL that extends Julia functions with the ability to make traced random choies.
+Then, users implement Monte Carlo inference algorithms for the model in Julia code, drawing heavily on GenLite's inference programming API, which provides core data structures and inference primitives that utilize the programmatic representation of the generative model.
+User inference code is written at a higher level of abstraction than typical custom sampler implementations, which makes it more efficient to develop, maintain, and reason about.
+
+In GenLite, a \emph{trace} is a Julia value (of type \texttt{Trace}) that contains a record of random choices made by some generative function.
+Generative functions, which are declared with keyword \texttt{@gen function}, extend Julia with three language constructs:
+\begin{enumerate}
+\item \texttt{@rand(<expr>, <address>)}: Sample a random value (i.e. a `random choice') from probability distribution \expr{}, where \address{} is a string or tuple of strings that specify a hierarchical name, or `address' for the random choice.
+Record the random choice in the trace at the given address.
+\item \texttt{@call(<expr>, <address>)}: Invoke a generative function given by \expr{}, and record the resulting trace for the invoked function under address \address{} in the current trace.
+\item \texttt{@read(<address>)}: If an input trace is provided, read the value in the input trace at the given \address{}.
+\end{enumerate}
+
+Note that generative functions can contain arbitrary Julia code.
+Figure~\ref{fig:model-code-figure} shows a generative function that only exercises the \texttt{@rand} keyword.
+
+\subsection{Using generative functions to define proposal distributions}
 Like probabilistic models, we represent proposals as probabilistic programs.
 Proposal programs can be used in importance sampling, sequential Monte Carlo, and Markov chain Monte Carlo.
 Proposal programs can include latent variables.
 
-\subsection{Training Proposal Distributions on Simulated Data}
+\begin{lstlisting}[basicstyle=\ttfamily\small]
+(new_trace::Trace, new_score::Float64, alpha::Float64, val) = mh4(
+        model::GenerativeFunction, model_args::Tuple,
+        forward::GenerativeFunction, forward_args::Tuple,
+        backward::GenerativeFunction, backward_args::Tuple,
+        transform::TraceTransform, transform_args::Tuple,
+        prev_trace::Trace, prev_score::Float64)
+\end{lstlisting}
+
+
+\subsection{Training proposal distributions on simulated data}
 Proposal programs can be used on simulated data (cite the `probabilitsic programs as proposals' research).
 Proposal programs can be trained for use as importance distributions or MCMC proposals.
 Show the math for training (KL divergence and maximum likelihood).
 Discuss static parameters.
 
 \section{Scalable Deep Learning in GenLite using TensorFlow}
-About the implementation.
-GenLite is embedded in Julia.
-TensorFlow functions, which have inputs and outputs and parameters.
+We extend GenLite with a \texttt{tf\_function} and \texttt{tf\_call} language constructs.
+The \texttt{tf\_function} keyword is used to define \emph{GenLite TensorFlow functions}, which are functional TensorFlow computations with declared inputs, trainable parameters, and an output.
 Discuss the reverse-mode AD integration.
 Discuss vectorized (batched) training.
 
@@ -62,7 +98,7 @@ Because GenLite provides programmable inference, we can combine deep neural netw
 
 \include{model_code_figure}
 \include{proposal_code_figure}
-
+\include{training_code_figure}
 
 \section{Example}
 
