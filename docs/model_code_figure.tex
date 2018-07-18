@@ -32,6 +32,7 @@ end
 \begin{minipage}[t]{0.5\textwidth}
 \begin{lstlisting}
 model = @gen function()
+
   # prior
   x = width * @rand(uniform_cont(0, 1), <@\addr{"x"}@>)
   y = height * @rand(uniform_cont(0, 1), <@\addr{"y"}@>)
