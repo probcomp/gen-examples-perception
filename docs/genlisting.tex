@@ -1,0 +1,28 @@
+%!TEX root = ./main.tex
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  columns=fullflexible,
+  keepspaces=true,
+  upquote=true,
+  % Define . and % and @ as letters to include them in keywords.
+  alsoletter={\.,\%,\#, \@, \?, \/},
+  % First type of keywords.
+  morekeywords=[1]{function, if, else, end, for, begin, in, const, struct, using, return},
+  keywordstyle=[1]\textcolor{Brown},
+  % Second type of keywords.
+  morekeywords=[2]{\@generative, \@rand},
+  keywordstyle=[2]\textcolor{RoyalBlue},
+  % Add strings
+  showstringspaces=False,
+  %stringstyle=\ttfamily\color{NavyBlue},
+  %stringstyle=\ttfamily\color{Purple},
+  %morestring=[b]{"},
+  %morestring=[b]{'},
+  % l is for line comment
+  morecomment=[l]{\#},
+  commentstyle=\color{Gray}\ttfamily,
+  escapeinside={<@}{@>}
+}
+
+\newcommand{\addr}[1]{\textcolor{DarkGreen}{#1}}

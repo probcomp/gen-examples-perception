@@ -1,0 +1,134 @@
+\documentclass{article}
+
+\PassOptionsToPackage{numbers, compress}{natbib}
+\usepackage{nips_2017}
+\usepackage{listings}
+\usepackage{textcomp}
+\usepackage[usenames,dvipsnames,svgnames]{xcolor}
+
+\input{genlisting}
+
+\title{Combining custom deep learning and Monte Carlo for inference in probabilistic programs}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\section{Background: Programmable Inference in Probabilistic Programs}
+Introduce GenLite.
+
+\subsection{Generative Functions}
+Introduce generative functions.
+
+\subsection{Using Generative Functions to Define Proposal Distributions}
+Like probabilistic models, we represent proposals as probabilistic programs.
+Proposal programs can be used in importance sampling, sequential Monte Carlo, and Markov chain Monte Carlo.
+Proposal programs can include latent variables.
+
+\subsection{Training Proposal Distributions on Simulated Data}
+Proposal programs can be used on simulated data (cite the `probabilitsic programs as proposals' research).
+Proposal programs can be trained for use as importance distributions or MCMC proposals.
+Show the math for training (KL divergence and maximum likelihood).
+Discuss static parameters.
+
+\section{Scalable Deep Learning in GenLite}
+About the implementation.
+GenLite is embedded in Julia.
+TensorFlow functions, which have inputs and outputs and parameters.
+Discuss the reverse-mode AD integration.
+Discuss vectorized (batched) training.
+
+\section{Combining Monte Carlo Inference and Deep Learning}
+Because GenLite provides programmable inference, we can combine deep neural network proposals with other Monte Carlo strategies, like random walk moves, for refining a hypothesis.
+
+\begin{figure}[t]
+\begin{minipage}[t]{0.5\textwidth}
+\begin{lstlisting}
+using Cairo, ImageMagick, ImageFiltering
+..
+
+function render(glyph::Glyph)
+  canvas = CairoRGBSurface(width, height)
+  cc = CairoContext(canvas)
+  Cairo.save(cc)
+
+  # set background color to white
+  Cairo.set_source_rgb(cc, 1.0, 1.0, 1.0)
+  Cairo.rectangle(cc, 0.0, 0.0, width, height)
+  Cairo.fill(cc)
+  Cairo.restore(cc)
+  Cairo.save(cc)
+
+  # write the letter
+  fontface = "Sans $(glyph.fontsize)"
+  Cairo.set_font_face(cc, fontface)
+  Cairo.text(cc, glyph.x, glyph.y, glyph.letter,
+             angle=glyph.angle)
+
+  return convert_to_png_blob(canvas)
+end
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}[t]{0.5\textwidth}
+\begin{lstlisting}
+model = @generative function()
+  # prior
+  x = width * @rand(uniform_cont(0, 1), <@\addr{"x"}@>)
+  y = height * @rand(uniform_cont(0, 1), <@\addr{"y"}@>)
+  size = @rand(uniform_cont(0, 1), <@\addr{"size"}@>)
+  letter_id = @rand(uniform_disc(1, 3), <@\addr{"letter"}@>)
+  letter = ["A", "B", "C"][letter_id]
+  angle = 45 * @rand(uniform_cont(-1, 1), <@\addr{"angle"}@>)
+  fontsize = scale_size(min_size, max_size, size)
+  glyph = Glyph(x, y, angle, fontsize, letter)
+
+  # render to png bytes
+  image_png = render(glyph)
+
+  # add Gaussian blur
+  blur_width = 3
+  blurred_png = imfilter(image_png,
+                  Kernel.gaussian(blur_width))
+
+  # add noise
+  matrix = convert(Matrix{Float64}, blurred_png)
+  @rand(speckle_noise(matrix, 0.1), <@\addr{"image"}@>)
+end
+\end{lstlisting}
+\end{minipage}
+\end{figure}
+
+\section{Example}
+Reference the code figure.
+
+\section{Related Work}
+Guide programs in Pyro,
+Using probabilisic programs as proposals,
+Edward,
+Stuart Russell work on block neural proposals,
+Tuan An Le's work on univeral compiled inference,
+Wake sleep,
+Helmholtz machines,
+VAE,
+Stochastic inverses
+
+%\input{abstract.tex}
+%\input{introduction.tex}
+%\input{background.tex}
+%\input{formalism.tex}
+%\input{related.tex}
+%\input{experiments.tex}
+%\input{discussion}
+
+%\subsubsection*{Acknowledgments}
+%This research was supported by DARPA (PPAML program, contract number FA8750-14-2-0004), IARPA (under research contract 2015-15061000003), the Office of Naval Research (under research contract N000141310333), the Army Research Office (under agreement number W911NF-13-1-0212), and gifts from Analog Devices and Google.
+%This research was conducted with Government support under and awarded by DoD, Air Force Office of Scientific Research, National Defense Science and Engineering Graduate (NDSEG) Fellowship, 32 CFR 168a.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}
