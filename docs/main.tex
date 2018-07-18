@@ -5,6 +5,7 @@
 \usepackage{listings}
 \usepackage{textcomp}
 \usepackage[usenames,dvipsnames,svgnames]{xcolor}
+\usepackage{graphicx}
 
 \input{genlisting}
 
@@ -35,14 +36,21 @@ Proposal programs can be trained for use as importance distributions or MCMC pro
 Show the math for training (KL divergence and maximum likelihood).
 Discuss static parameters.
 
-\section{Scalable Deep Learning in GenLite}
+\section{Scalable Deep Learning in GenLite using TensorFlow}
 About the implementation.
 GenLite is embedded in Julia.
 TensorFlow functions, which have inputs and outputs and parameters.
 Discuss the reverse-mode AD integration.
 Discuss vectorized (batched) training.
 
-\section{Combining Monte Carlo Inference and Deep Learning}
+\begin{figure}[h]
+\centering
+    \includegraphics[width=0.7\textwidth]{images/tf-integration-schematic.pdf}
+    \caption{Reverse-mode AD in GenLite integrated with TensorFlow.}
+    \label{fig:tf-integration-schematic}
+\end{figure}
+
+\section{Combining Monte Carlo Inference and Deep Learning Proposals}
 Because GenLite provides programmable inference, we can combine deep neural network proposals with other Monte Carlo strategies, like random walk moves, for refining a hypothesis.
 
 \include{model_code_figure}
