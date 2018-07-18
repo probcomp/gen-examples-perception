@@ -49,9 +49,9 @@ Discuss vectorized (batched) training.
     \caption{
 Reverse-mode AD in GenLite interoperates with TensorFlow functions.
 A TensorFlow function produces a single element on the reverse-mode AD tape.
-During the backward pass, we receive the gradient with respect to the output (\texttt{@output}) of the TensorFlow function; TensorFlow is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
+During the backward pass (solid lines), we receive the gradient with respect to the output (\texttt{@output}) of the TensorFlow function; TensorFlow is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
 The gradients with respect to the parameters are accumulated across multiple backward passes, until an parameter update is performed.
-A parameter update changes the parameter values using the accumulated gradient (in addition to any update-specific state), and resets the gradient accumulators to zero.
+A parameter update (dashed line) changes the parameter values using the accumulated gradient (in addition to any update-specific state), and resets the gradient accumulators to zero.
 Parameter updates are TensorFlow operations implemented by user, defined externally from the TensorFlow function itself.
 }
     \label{fig:tf-integration-schematic}
@@ -63,8 +63,24 @@ Because GenLite provides programmable inference, we can combine deep neural netw
 \include{model_code_figure}
 \include{proposal_code_figure}
 
+
 \section{Example}
+
+\begin{figure}[h]
+\centering
+    \includegraphics[width=1.0\textwidth]{images/deep-neural-network-is.pdf}
+    \caption{
+Inference in the generative model of Figure~\ref{fig:model-code-figure} using a combination of deep learning and model-based Monte Carlo.
+On the left is the observed image, followed by a set of 10 of latent images sampled from the trained deep neural network proposal (\texttt{proposal} in Figure~\ref{fig:proposal-code-figure}), and a set of 10 latent images sampled using importance sampling, with the trained deep neural network proposal as the importance distribution.
+The deep neural network was trained on traces and images jointly sampled from the generative model, using ADAM with 170,000 iterations, each with batch size 100.
+The deep neural network proposal is uncertain about the location and orientiation of the letter.
+Augmenting the neural network with model-based importance sampling gives more accurate inferences.
+}
+    \label{fig:example-results}
+\end{figure}
+
 See Figure~\ref{fig:model-code-figure}.
+
 
 \section{Related Work}
 Guide programs in Pyro,
@@ -77,17 +93,9 @@ Helmholtz machines,
 VAE,
 Stochastic inverses
 
-%\input{abstract.tex}
-%\input{introduction.tex}
-%\input{background.tex}
-%\input{formalism.tex}
-%\input{related.tex}
-%\input{experiments.tex}
-%\input{discussion}
-
-%\subsubsection*{Acknowledgments}
-%This research was supported by DARPA (PPAML program, contract number FA8750-14-2-0004), IARPA (under research contract 2015-15061000003), the Office of Naval Research (under research contract N000141310333), the Army Research Office (under agreement number W911NF-13-1-0212), and gifts from Analog Devices and Google.
-%This research was conducted with Government support under and awarded by DoD, Air Force Office of Scientific Research, National Defense Science and Engineering Graduate (NDSEG) Fellowship, 32 CFR 168a.
+\subsubsection*{Acknowledgments}
+This research was supported by DARPA (PPAML program, contract number FA8750-14-2-0004), IARPA (under research contract 2015-15061000003), the Office of Naval Research (under research contract N000141310333), the Army Research Office (under agreement number W911NF-13-1-0212), and gifts from Analog Devices and Google.
+This research was conducted with Government support under and awarded by DoD, Air Force Office of Scientific Research, National Defense Science and Engineering Graduate (NDSEG) Fellowship, 32 CFR 168a.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
