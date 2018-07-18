@@ -1,7 +1,10 @@
 \begin{figure}[t]
 \begin{minipage}[t]{0.5\textwidth}
 \begin{lstlisting}
-using Cairo, ImageMagick, ImageFiltering
+using GenLite, Cairo, ImageMagick, ImageFiltering
+Gen = GenLite
+const width, height = 56, 56
+const min_size, max_size = 15, 35
 ..
 
 function render(glyph::Glyph)

@@ -1,5 +1,5 @@
 \begin{figure}[t]
-\begin{minipage}[t]{0.6\textwidth}
+\begin{minipage}[t]{0.5\textwidth}
 \begin{lstlisting}
 using GenLiteTF
 using TensorFlow
@@ -63,6 +63,7 @@ end
 
 \end{lstlisting}
 \end{minipage}%
+\hfill
 \begin{minipage}[t]{0.4\textwidth}
 \begin{lstlisting}
 predict = @gen function (outputs)
@@ -118,8 +119,7 @@ proposal_batch = @gen function (batch_size)
   # run inference network in batch
   outputs = @tf_call(network(images))
   
-  # make prediction for each image,
-  # given inference network outputs
+  # make prediction for each image
   for i=1:batch_size
     @call(predict(outputs[i,:]), <@\addr{"\$i"}@>)
   end
