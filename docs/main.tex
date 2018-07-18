@@ -46,7 +46,14 @@ Discuss vectorized (batched) training.
 \begin{figure}[h]
 \centering
     \includegraphics[width=0.7\textwidth]{images/tf-integration-schematic.pdf}
-    \caption{Reverse-mode AD in GenLite integrated with TensorFlow.}
+    \caption{
+Reverse-mode AD in GenLite interoperates with TensorFlow functions.
+A TensorFlow function produces a single element on the reverse-mode AD tape.
+During the backward pass, we receive the gradient with respect to the output (\texttt{@output}) of the TensorFlow function; TensorFlow is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
+The gradients with respect to the parameters are accumulated across multiple backward passes, until an parameter update is performed.
+A parameter update changes the parameter values using the accumulated gradient (in addition to any update-specific state), and resets the gradient accumulators to zero.
+Parameter updates are TensorFlow operations implemented by user, defined externally from the TensorFlow function itself.
+}
     \label{fig:tf-integration-schematic}
 \end{figure}
 
