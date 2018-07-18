@@ -1,0 +1,47 @@
+\begin{figure}[t]
+\begin{minipage}[t]{0.45\textwidth}
+\begin{lstlisting}
+backward_kernel = @gen function () end
+
+biject = @bijective function ()
+  @copy((<@\addr{"prediction"}@>, <@\addr{"x"}@>), <@\addr{"x"}@>)
+  @copy((<@\addr{"prediction"}@>, <@\addr{"y"}@>), <@\addr{"y"}@>)
+  @copy((<@\addr{"prediction"}@>, <@\addr{"size"}@>), <@\addr{"size"}@>)
+  @copy((<@\addr{"prediction"}@>, <@\addr{"letter"}@>), <@\addr{"letter"}@>)
+  @copy((<@\addr{"prediction"}@>, <@\addr{"angle"}@>), <@\addr{"angle"}@>)
+end
+
+transform = <@\infr{TraceTransform}@>(biject, biject)
+\end{lstlisting}
+\end{minipage}
+\begin{minipage}[t]{0.55\textwidth}
+\begin{lstlisting}
+function importance_sample(input_image, num_samples)
+  observations = Trace()
+  observations[<@\addr{"image"}@>] = input_image
+
+  # obtain importance samples and their weights
+  traces = Vector{Trace}(num_samples)
+  log_weights = Vector{Float64}(num_samples)
+  for i=1:num_samples
+    (traces[i], _, log_weights[i], _) = <@\infr{importance4}@>(
+      model, (), proposal, (), backward_kernel, (),
+      transform, (), observations)
+  end
+
+  # return trace w/ probability proportional to its weight
+  probs = exp.(log_weights - logsumexp(log_weights))
+  idx = rand(categorical, (probs,))
+  return traces[idx]
+end
+\end{lstlisting}
+\end{minipage}
+\caption{
+Performing inference in the generative model of Figure~\ref{fig:model-code-figure} using a combination of deep learning and model-based Monte Carlo.
+Having trained the proposal distribution (\texttt{proposal}) we use it as an importance distribution in a sampling-importance-resampling algorithm.
+The GenLite API function \infr{\texttt{importance4}} samples from an importance distribution, then applies a trace bijection to obtain a new trace, and treats the resulting trace as a proposed trace for the model.
+In this case, the bijection simply moves random choices that were nested under the address \addr{\texttt{"prediction"}} to the top level of the trace.
+This example does not exercise the support for backward kernels, which can be used to implement auxiliary-variable importance samplers (thus \texttt{backward\_kernel} is empty).
+}
+\label{fig:inference-code-figure}
+\end{figure}

@@ -99,6 +99,7 @@ Because GenLite provides programmable inference, we can combine deep neural netw
 \include{model_code_figure}
 \include{proposal_code_figure}
 \include{training_code_figure}
+\include{inference_code_figure}
 
 \section{Example}
 
@@ -106,7 +107,7 @@ Because GenLite provides programmable inference, we can combine deep neural netw
 \centering
     \includegraphics[width=1.0\textwidth]{images/deep-neural-network-is.pdf}
     \caption{
-Inference in the generative model of Figure~\ref{fig:model-code-figure} using a combination of deep learning and model-based Monte Carlo.
+Results of inference in the generative model of Figure~\ref{fig:model-code-figure} using a combination of deep learning and model-based Monte Carlo.
 On the left is the observed image, followed by a set of 10 of latent images sampled from the trained deep neural network proposal (\texttt{proposal} in Figure~\ref{fig:proposal-code-figure}), and a set of 10 latent images sampled using importance sampling, with the trained deep neural network proposal as the importance distribution.
 The deep neural network was trained on traces and images jointly sampled from the generative model, using ADAM with 170,000 iterations, each with batch size 100.
 The deep neural network proposal is uncertain about the location and orientiation of the letter.
