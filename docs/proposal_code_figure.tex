@@ -126,7 +126,15 @@ proposal_batch = @gen function (batch_size)
 end
 \end{lstlisting}
 \end{minipage}
-\caption{}
+\caption{
+A GenLite TensorFlow (TF) function (\texttt{network}) that is invoked by a generative function (\texttt{proposal}) that implements a data-driven proposal for the model of Figure~\ref{fig:model-code-figure}.
+GenLite TF functions are identified by a \texttt{@tf\_function} keyword.
+The user declares inputs (\texttt{@input}, corresponding to TF placeholders), parameters (\texttt{@param}, corresponding to TF variables) and an output tensor (\texttt{@output}).
+The rest of the code inside the \texttt{@tf\_function} block is regular TensorFlow code, using the TensorFlow.jl Julia wrapper \cite{?} around the TensorFlow C API.
+The proposal reads the image from an input trace, runs the network, and then uses its output to parametrize distributions on the latent variables in the model.
+To scalably train the network on GPU hardware, we also implement a batched variant of the proposal program, which reads from and writes to vector-shaped traces.
+The batched and unbatched variants of the reuse both the TensorFlow and probabilistic prediction code.
+}
 \label{fig:proposal-code-figure}
 \end{figure}
 
