@@ -1,0 +1,58 @@
+\begin{figure}[t]
+\begin{minipage}[t]{0.5\textwidth}
+\begin{lstlisting}
+using Cairo, ImageMagick, ImageFiltering
+..
+
+function render(glyph::Glyph)
+  canvas = CairoRGBSurface(width, height)
+  cc = CairoContext(canvas)
+  Cairo.save(cc)
+
+  # set background color to white
+  Cairo.set_source_rgb(cc, 1.0, 1.0, 1.0)
+  Cairo.rectangle(cc, 0.0, 0.0, width, height)
+  Cairo.fill(cc)
+  Cairo.restore(cc)
+  Cairo.save(cc)
+
+  # write the letter
+  fontface = "Sans $(glyph.fontsize)"
+  Cairo.set_font_face(cc, fontface)
+  Cairo.text(cc, glyph.x, glyph.y, glyph.letter,
+             angle=glyph.angle)
+
+  return convert_to_png_blob(canvas)
+end
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}[t]{0.5\textwidth}
+\begin{lstlisting}
+model = @gen function()
+  # prior
+  x = width * @rand(uniform_cont(0, 1), <@\addr{"x"}@>)
+  y = height * @rand(uniform_cont(0, 1), <@\addr{"y"}@>)
+  size = @rand(uniform_cont(0, 1), <@\addr{"size"}@>)
+  letter_id = @rand(uniform_disc(1, 3), <@\addr{"letter"}@>)
+  letter = ["A", "B", "C"][letter_id]
+  angle = 45 * @rand(uniform_cont(-1, 1), <@\addr{"angle"}@>)
+  fontsize = scale_size(min_size, max_size, size)
+  glyph = Glyph(x, y, angle, fontsize, letter)
+
+  # render to png bytes
+  image_png = render(glyph)
+
+  # add Gaussian blur
+  blur_width = 3
+  blurred_png = imfilter(image_png,
+                  Kernel.gaussian(blur_width))
+
+  # add noise
+  matrix = convert(Matrix{Float64}, blurred_png)
+  @rand(speckle_noise(matrix, 0.1), <@\addr{"image"}@>)
+end
+\end{lstlisting}
+\end{minipage}
+\caption{Generative function for a generative model of blurry images that contain a single letter at a random location, rotation, and size. Addresses of random choices are shown in green.}
+\label{fig:model-code-figure}
+\end{figure}
