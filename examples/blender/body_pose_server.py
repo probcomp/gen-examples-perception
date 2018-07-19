@@ -18,7 +18,7 @@ class Pose(object):
     
     def __init__(self):
         self.joints = bpy.data.objects['rig'].pose.bones
-        self.joint_name_to_idx = {
+        self.joint_name_to_idx = { # TODO add others?
             "arm_elbow_R" : 9,
             "arm_elbow_L" : 7,
             "hip" : 1,
@@ -32,13 +32,17 @@ class Pose(object):
 
     def set_joint_rotation_euler(self, joint_name, euler_angles):
         joint = self.get_joint(joint_name)
-        print(joint_name)
-        print(euler_angles)
-        print("setting joint ", joint)
         joint.rotation_mode = 'XYZ'
         joint.rotation_euler[0] = euler_angles[0]
         joint.rotation_euler[1] = euler_angles[1]
         joint.rotation_euler[2] = euler_angles[2]
+        return body_pose.OK
+
+    def capture_viewport(self, fname):
+        print("capture_viewport with fname: ", fname)
+        #bpy.data.scenes["Scene"].use_nodes = False    
+        bpy.context.scene.render.filepath = fname
+        bpy.ops.render.opengl(write_still=True)
         return body_pose.OK
 
 class BodyPoseServer(json_socket_interface.JSONServer):
@@ -47,7 +51,8 @@ class BodyPoseServer(json_socket_interface.JSONServer):
         super().__init__(port)
         self.pose = Pose()
         self.methods = {
-            body_pose.SET_JOINT_ROTATION_EULER : self.pose.set_joint_rotation_euler
+            body_pose.SET_JOINT_ROTATION_EULER : self.pose.set_joint_rotation_euler,
+            body_pose.CAPTURE_VIEWPORT : self.pose.capture_viewport
         }
 
     def process(self, request):
@@ -57,6 +62,7 @@ class BodyPoseServer(json_socket_interface.JSONServer):
 
 print("HI!")
 server = BodyPoseServer(5003)
-thread = threading.Thread(target=server.run, args=())
-thread.daemon = True
-thread.start()
+server.run()
+#thread = threading.Thread(target=server.run, args=())
+#thread.daemon = True
+#thread.start()
