@@ -40,7 +40,7 @@ def _recv(socket):
 class JSONServer(ABC):
 
     def __init__(self, port):
-        self.host = 'localhost'
+        self.host = ''
         self.port = port
 
     @abstractmethod
