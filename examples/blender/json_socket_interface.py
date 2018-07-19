@@ -1,4 +1,3 @@
-#import bpy
 import socket
 import json
 import select
@@ -6,23 +5,25 @@ import sys
 import math
 import time
 import pdb
+from abc import ABC, abstractmethod
 
 def _send(socket, data):
     try:
         serialized = json.dumps(data)
-    except (TypeError, ValueError), e:
+        print("_send: ", serialized)
+    except (TypeError, ValueError):
         raise Exception('You can only send JSON-serializable data')
-    socket.send('%d\n' % len(serialized))
-    socket.sendall(serialized)
+    socket.send(('%d\n' % len(serialized)).encode())
+    socket.sendall(serialized.encode())
 
 def _recv(socket):
     # https://github.com/mdebbar/jsonsocket/blob/master/jsonsocket.py
     # read length of data, character by character, until EOL
     length_str = ''
-    char = socket.recv(1)
+    char = socket.recv(1).decode()
     while char != '\n':
         length_str += char
-        char = socket.recv(1)
+        char = socket.recv(1).decode()
     length = int(length_str)
     view = memoryview(bytearray(length))
     next_offset = 0
@@ -30,36 +31,37 @@ def _recv(socket):
         recv_size = socket.recv_into(view[next_offset:], length - next_offset)
         next_offset += recv_size
     try:
-        deserialized = json.loads(view.tobytes())
-    except (TypeError, ValueError), e:
+        deserialized = json.loads(view.tobytes().decode())
+        print("_recv: ", deserialized)
+    except (TypeError, ValueError):
         raise Exception('Data received was not in JSON format')
     return deserialized
 
-class Server(object):
+class JSONServer(ABC):
 
     def __init__(self, port):
         self.host = 'localhost'
         self.port = port
-        self.connect()
 
-    def connect(self):
-        self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.serversocket.bind((self.host, self.port))
-        self.serversocket.listen(0)
+    @abstractmethod
+    def process(self, request):
+        pass
 
     def run(self):
+        serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serversocket.bind((self.host, self.port))
+        serversocket.listen(0)
         while True:
-            (socket, address) = self.serversocket.accept()
-            request = _recv(socket)
+            (sock, address) = serversocket.accept()
+            request = _recv(sock)
             print("Server received request: ", request)
-            #response = self.process(request)
-            response = { "foo" : "bar" }
+            response = self.process(request)
             print("Server sending response: ", response)
-            _send(socket, response)
-            socket.close()
+            _send(sock, response)
+            sock.close()
+        
 
-
-class Client(object):
+class JSONClient(object):
 
     def __init__(self, port):
         self.host = 'localhost'
