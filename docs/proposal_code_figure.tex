@@ -105,7 +105,7 @@ proposal = @gen function ()
   outputs = @tf_call(network(image))
 
   # make prediction given inference network outputs
-  @call(predict(outputs[1,:]), <@\addr{"prediction"}@>)
+  @splice(predict(outputs[1,:]))
 end
 
 proposal_batch = @gen function (batch_size)
