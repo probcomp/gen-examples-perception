@@ -21,3 +21,6 @@ class BodyPoseClient(object):
 
     def capture_viewport(self, fname):
         return self._execute(body_pose.CAPTURE_VIEWPORT, { "fname" : fname })
+
+    def capture_viewport_depth(self, fname):
+        return self._execute(body_pose.CAPTURE_VIEWPORT_DEPTH, { "fname" : fname })

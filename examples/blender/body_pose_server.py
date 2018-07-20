@@ -45,6 +45,16 @@ class Pose(object):
         bpy.ops.render.opengl(write_still=True)
         return body_pose.OK
 
+    def capture_viewport_depth(self, fname):
+        bpy.context.scene.render.layers['RenderLayer'].use_pass_mist = True
+        scene.world.mist_settings.falloff = 'LINEAR'
+        scene.world.mist_settings.intensity = 0.0 # minimum depth
+        scene.world.mist_settings.depth = dist # maximum depth
+        bpy.context.scene.render.filepath = fname
+        bpy.ops.render.opengl(write_still=True)
+        return body_pose.OK
+
+
 class BodyPoseServer(json_socket_interface.JSONServer):
 
     def __init__(self, port):
