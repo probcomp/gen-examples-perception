@@ -1,5 +1,6 @@
 import rpyc
 import bpy
+import time
 
 class BlockingServer(rpyc.utils.server.Server):
 
@@ -27,12 +28,20 @@ class BlenderService(rpyc.Service):
     def on_disconnect(self, conn):
         pass
 
-    def exposed_open_mainfile(self, filepath):
-        bpy.ops.wm.open_mainfile(filepath=filepath)
-
     def exposed_setup_for_depth(self):
+        #self.scene.render.engine = "BLENDER_RENDER"
+        self.scene.render.engine = "CYCLES"
+        self.scene.cycles.samples=1
+        self.scene.render.tile_x=50
+        self.scene.render.tile_y=50
+        self.scene.cycles.max_bounces=0
+        self.scene.cycles.caustics_reflective=False
+        self.scene.cycles.caustics_refractive=False
+
+        self.scene.render.use_compositing = True
         self.scene.use_nodes = True
-        self.scene.render.layers[0].use_pass_normal = True # ?
+        #self.scene.render.layers[0].use_pass_normal = True # ?
+        #self.scene.render.layers[0].use_pass_normal = False # ?
         tree = bpy.context.scene.node_tree
         addNode(tree, 'CompositorNodeNormalize')
         render = tree.nodes['Render Layers']
@@ -72,5 +81,29 @@ class BlenderService(rpyc.Service):
         self.scene.render.filepath = filepath
         bpy.ops.render.render(write_still=True)
 
+    def exposed_set_bone_location(self, object_name, bone_name, location):
+        bone = bpy.data.objects[object_name].pose.bones[bone_name]
+        bone.location = location
+
+    def exposed_set_bone_rotation_euler(self, object_name, bone_name, rotation_euler):
+        bone = bpy.data.objects[object_name].pose.bones[bone_name]
+        bone.rotation_mode = 'XYZ'
+        bone.rotation_euler = rotation_euler
+
+    def exposed_get_bone_location(self, object_name, bone_name):
+        bone = bpy.data.objects[object_name].pose.bones[bone_name]
+        return tuple(bone.location)
+
+    def exposed_get_bone_rotation_euler(self, object_name, bone_name):
+        bone = bpy.data.objects[object_name].pose.bones[bone_name]
+        return tuple(bone.rotation_euler)
+
+    def exposed_set_body_pose(self, pose):
+        self.exposed_set_bone_location("rig", "arm elbow_R", pose["arm_elbow_r_location"])
+        self.exposed_set_bone_location("rig", "arm elbow_L", pose["arm_elbow_l_location"])
+        self.exposed_set_bone_rotation_euler("rig", "arm elbow_R", pose["arm_elbow_r_rotation"])
+        self.exposed_set_bone_rotation_euler("rig", "arm elbow_L", pose["arm_elbow_l_rotation"])
+
+# note: the model should already have been loaded
 t = BlockingServer(BlenderService, port=59892)
 t.start()
