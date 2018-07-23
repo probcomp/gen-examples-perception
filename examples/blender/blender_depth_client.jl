@@ -24,28 +24,34 @@ tup(point::Point3) = (point.x, point.y, point.z)
 #############
 
 struct BodyPose
+    rotation::Point3
     arm_elbow_r_location::Point3
     arm_elbow_l_location::Point3
     arm_elbow_r_rotation::Point3
     arm_elbow_l_rotation::Point3
-    #hip_location::Point3
-    #heel_r_location::Point3
-    #heel_l_location::Point3
+    hip_location::Point3
+    heel_r_location::Point3
+    heel_l_location::Point3
 end
 
 function Base.:+(a::BodyPose, b::BodyPose)
     BodyPose(
+        a.rotation + b.rotation,
         a.arm_elbow_r_location + b.arm_elbow_r_location,
         a.arm_elbow_l_location + b.arm_elbow_l_location,
         a.arm_elbow_r_rotation + b.arm_elbow_r_rotation,
-        a.arm_elbow_l_rotation + b.arm_elbow_l_rotation)
+        a.arm_elbow_l_rotation + b.arm_elbow_l_rotation,
+        a.hip_location + b.hip_location,
+        a.heel_r_location + b.heel_r_location,
+        a.heel_l_location + b.heel_l_location)
 end
 
 const RIG = "rig"
 const ARM_ELBOW_R = "arm elbow_R"
 const ARM_ELBOW_L = "arm elbow_L"
-
-
+const HIP = "hip"
+const HEEL_R = "heel_R"
+const HEEL_L = "heel_L"
 
 ##################
 # blender client #
@@ -90,7 +96,19 @@ function set_object_scale!(client::BlenderClient, object::String, point::Point3)
     nothing
 end
 
-function set_bone_location!(client::BlenderClient, object::String, bone::String, location::Point3)
+function get_object_location!(client::BlenderClient, object::String)
+    Point3(client.root[:get_object_location](object))
+end
+
+function get_object_rotation_euler(client::BlenderClient, object::String)
+    Point3(client.root[:get_object_rotation_euler](object))
+end
+
+function get_object_scale(client::BlenderClient, object::String)
+    Point3(client.root[:get_object_scale](object))
+end
+
+function set_bone_location(client::BlenderClient, object::String, bone::String, location::Point3)
     client.root[:set_bone_location](object, bone, tup(location))
     nothing
 end
@@ -114,36 +132,25 @@ end
 
 function get_body_pose(client::BlenderClient)
     BodyPose(
+        get_object_rotation_euler(client, RIG),
         get_bone_location(client, RIG, ARM_ELBOW_R),
         get_bone_location(client, RIG, ARM_ELBOW_L),
         get_bone_rotation_euler(client, RIG, ARM_ELBOW_R),
-        get_bone_rotation_euler(client, RIG, ARM_ELBOW_L))
+        get_bone_rotation_euler(client, RIG, ARM_ELBOW_L),
+        get_bone_location(client, RIG, HIP),
+        get_bone_location(client, RIG, HEEL_R),
+        get_bone_location(client, RIG, HEEL_L))
 end
 
 function set_body_pose!(client::BlenderClient, pose::BodyPose)
     pose_dict = Dict(
+        "rotation" => tup(pose.rotation),
         "arm_elbow_r_location" => tup(pose.arm_elbow_r_location),
-        "arm_elbow_l_location" => tup(pose.arm_elbow_l_rotation),
-        "arm_elbow_r_rotation" => tup(pose.arm_elbow_r_location),
-        "arm_elbow_l_rotation" => tup(pose.arm_elbow_l_rotation))
+        "arm_elbow_l_location" => tup(pose.arm_elbow_l_location),
+        "arm_elbow_r_rotation" => tup(pose.arm_elbow_r_rotation),
+        "arm_elbow_l_rotation" => tup(pose.arm_elbow_l_rotation),
+        "hip_location" => tup(pose.hip_location),
+        "heel_r_location" => tup(pose.heel_r_location),
+        "heel_l_location" => tup(pose.heel_l_location))
     client.root[:set_body_pose](pose_dict)
 end
-
-
-client = BlenderClient()
-connect!(client, "localhost", 59892)
-setup_for_depth!(client)
-set_resolution!(client, 100, 100)
-set_object_location!(client, "Camera", Point3(0, -8.5, 5))
-set_object_rotation_euler!(client, "Camera", Point3(pi/3., 0, 0))
-add_plane!(client, "background", Point3(0,4,0), Point3(pi/3.,0,0), Point3(20,20,20))
-set_object_location!(client, RIG, Point3(0, 0, 0))
-set_object_rotation_euler!(client, RIG, Point3(0, 0, 0))
-set_object_scale!(client, RIG, Point3(3, 3, 3))
-add_plane!(client, "nearplane", Point3(-2,-4,0), Point3(pi/3.,0,0), Point3(0.1,0.1,0.1))
-pose = get_body_pose(client)
-tic()
-for i=1:100
-    render(client, "$(pwd())/test_depth_$i.png")
-end
-toc()
