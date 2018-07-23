@@ -47,6 +47,12 @@ ln -s ~/dev/GenLite.jl ~/.julia/v0.6/GenLite
 ln -s ~/dev/GenLiteTF.jl ~/.julia/v0.6/GenLiteTF
 ```
 
+Since we are not installing GenLite.jl using the package manager, we have to install its dependencies manually:
+```
+Pkg.add("Distributions")
+Pkg.add("ReverseDiff")
+```
+
 Install other Julia packages:
 ```
 Pkg.add("ImageFiltering")
