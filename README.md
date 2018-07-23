@@ -18,14 +18,14 @@ Suppose the path to python3 is: `/home/marcoct/my-env/bin/python3`.
 
 ## Julia environment
 
-Install [PyCall.jl](https://github.com/JuliaPy/PyCall.jl), and then re-build to use the virtualenv python installation: 
+Install the [PyCall.jl](https://github.com/JuliaPy/PyCall.jl) Julia package, and then re-build to use the virtualenv python installation: 
 ```julia
 Pkg.add("PyCall")
 ENV["PYTHON"] = "/home/marcoct/my-env/bin/python3"
 Pkg.build("PyCall")
 ```
 
-Install the TensorFlow.jl package, and pin it to a specific version.
+Install the [TensorFlow.jl](https://github.com/malmaud/TensorFlow.jl) Julia package, and pin it to a specific version.
 ```
 Pkg.add("TensorFlow")
 Pkg.pin("TensorFlow", v"0.9.1")
