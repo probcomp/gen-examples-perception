@@ -33,7 +33,7 @@ Pkg.pin("TensorFlow", v"0.9.1")
 The version of TensorFlow python library and the TensorFlow.jl Julia package need to be synchronized.
 Given a version of TensorFlow.jl, the version of python TensorFlow to install can be found in the file [deps/build.jl](https://github.com/malmaud/TensorFlow.jl/blob/master/deps/build.jl) in the TensorFlow.jl source code.
 
-To build with support for GPU, use:
+To build TensorFlow.jl with support for GPU, use:
 ```
 ENV["TF_USE_GPU"] = "1"
 Pkg.build("TensorFlow")
