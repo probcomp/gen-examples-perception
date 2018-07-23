@@ -4,15 +4,26 @@ Extended abstract on deep learning for inference in GenLite, highlighting combin
 ## Python environment
 
 We first set up a python environment that contains a specific version of TensorFlow installed.
-Create a python3 virtual environment, and install TensorFlow and matplotlib:
+Create a python3 virtual environment, and install TensorFlow and matplotlib, and (rpyc)[https://rpyc.readthedocs.io/en/latest/], which is used for the blender rendering server/client.
+We also need the path to the python3 executable in this virtualenv.
 ```
 virtualenv -p python3 my-env
-source my-env/bin/activate
+source ~/my-env/bin/activate
 pip3 install tensorflow==1.8.0
 pip3 install matplotlib
+pip3 install rpyc
+which python3
 ```
+Suppose the path to python3 is: `/home/marcoct/my-env/bin/python3`.
 
 ## Julia environment
+
+Install [PyCall.jl](https://github.com/JuliaPy/PyCall.jl), and then re-build to use the virtualenv python installation: 
+```julia
+Pkg.add("PyCall")
+ENV["PYTHON"] = "/home/marcoct/my-env/bin/python3"
+Pkg.build("PyCall")
+```
 
 Install the TensorFlow.jl package, and pin it to a specific version.
 ```
@@ -28,6 +39,14 @@ One way to install them is to clone the repositories locally (e.g. to `~/dev/Gen
 ```
 ln -s ~/dev/GenLite.jl ~/.julia/v0.6/GenLite
 ln -s ~/dev/GenLiteTF.jl ~/.julia/v0.6/GenLiteTF
+```
+
+Install other Julia packages:
+```
+Pkg.add("ImageFiltering")
+Pkg.add("ImageMagick") # needed for working with PNGs
+Pkg.add("FileIO")
+Pkg.add("JLD")
 ```
 
 ## Blender
