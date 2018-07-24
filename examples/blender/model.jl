@@ -72,7 +72,9 @@ const default_body_pose = BodyPose(
     Point3(0.0, 0.0, 0.0),
     Point3(0.0, 0.0, 0.0))
 
-function render(pose::BodyPose)
+function render_depth(pose::BodyPose)
+    setup_for_depth!(client)
+    set_resolution!(client, width, height)
     tmp = tempname() * ".png"
     set_body_pose!(client, pose)
     render(client, tmp)
@@ -84,6 +86,8 @@ end
 # ensure the convert method gets compiled
 # TODO debug this, may be a bug in FileIO
 tmp = tempname() * ".png"
+setup_for_depth!(client)
+set_resolution!(client, width, height)
 set_body_pose!(client, default_body_pose)
 render(client, tmp)
 img = FileIO.load(tmp)
@@ -131,17 +135,17 @@ model = @generative function ()
             @rand(uniform(0, 1), "heel_l_location_dz")))
 
     # render
-    ground_truth_image = render(pose)
+    depth = render_depth(pose)
 
     # blur it
     blur_amount = 1
-    blurred_image = ImageFiltering.imfilter(ground_truth_image,
+    blurred = ImageFiltering.imfilter(depth,
                     ImageFiltering.Kernel.gaussian(blur_amount))
     # add speckle
     noise = 0.1
-    observable_image = @rand(noisy_matrix(blurred_image, noise), "image")
+    observable = @rand(noisy_matrix(blurred, noise), "image")
 
-    (ground_truth_image, blurred_image, observable_image)
+    (depth, blurred, observable)
 end
 
 function trace_to_pose(t::Trace)
@@ -170,4 +174,12 @@ function trace_to_pose(t::Trace)
             t["heel_l_location_dx"],
             t["heel_l_location_dy"],
             t["heel_l_location_dz"]))
+end
+
+function render_wireframe(trace::Trace, filepath)
+    pose = trace_to_pose(trace)
+    set_body_pose!(client, pose)
+    setup_for_wireframe!(client)
+    set_resolution!(client, 400, 400)
+    render(client, filepath)
 end
