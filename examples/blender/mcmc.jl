@@ -1,6 +1,9 @@
-include("model.jl")
+using GenLiteTF
+using TensorFlow
+tf = TensorFlow
 
-import JLD
+include("model.jl")
+include("proposal.jl")
 
 function make_single_site_grw_proposal(addr, width)
     @generative function()
@@ -82,7 +85,7 @@ function mcmc_moves(trace, score)
     (trace, score, accepted, val)
 end
 
-function do_mcmc(input_image, n::Int)
+function do_mcmc_prior_init(input_image, n::Int)
 
     # construct trace containing observed image
     observations = Trace()
@@ -94,11 +97,35 @@ function do_mcmc(input_image, n::Int)
     # do MCMC iterations
     scores = Vector{Float64}(n)
     for iter=1:n
-        (trace, scores[iter], _, _) = mcmc_moves(trace, score)
+        (trace, score, _, _) = mcmc_moves(trace, score)
+        scores[iter] = score
     end
     
     (trace, scores)
 end
+
+function do_mcmc_dl_init(input_image, n::Int)
+
+    # construct trace containing observed image
+    observations = Trace()
+    observations["image"] = input_image
+    
+    # generate initial complete trace
+    (trace, score, _, _) = Gen.imp2(model, (), dl_proposal, (), observations)
+    
+    # do MCMC iterations
+    scores = Vector{Float64}(n)
+    for iter=1:n
+        (trace, score, _, _) = mcmc_moves(trace, score)
+        scores[iter] = score
+    end
+    
+    (trace, scores)
+end
+
+tf.run(get_ambient_tf_session(), tf.global_variables_initializer())
+saver = tf.train.Saver()
+tf.train.restore(saver, get_ambient_tf_session(), "inference_network_params.jld")
 
 input_image = convert(Matrix{Float64}, FileIO.load("observed.png"))
 traces = Dict()
@@ -107,14 +134,24 @@ scores = Dict()
 for n in [1, 10, 100, 1000]
     println("mcmc n=$n")
     reps = 20
-    runtimes[n] = Vector{Float64}(reps)
-    traces[n] = Vector{Trace}(reps)
-    scores[n] = Vector{Vector{Float64}}(reps)
+    runtimes[("prior-init", n)] = Vector{Float64}(reps)
+    traces[("prior-init", n)] = Vector{Trace}(reps)
+    scores[("prior-init", n)] = Vector{Vector{Float64}}(reps)
+    runtimes[("dl-init", n)] = Vector{Float64}(reps)
+    traces[("dl-init", n)] = Vector{Trace}(reps)
+    scores[("dl-init", n)] = Vector{Vector{Float64}}(reps)
     for i=1:reps
         println("$i of $reps")
+
+        println("prior-init")
         tic()
-        (traces[n][i], scores[n][i]) = do_mcmc(input_image, n)
-        runtimes[n][i] = toq()
+        (traces[("prior-init", n)][i], scores[("prior-init", n)][i]) = do_mcmc_prior_init(input_image, n)
+        runtimes[("prior-init", n)][i] = toq()
+
+        println("dl-init")
+        tic()
+        (traces[("dl-init", n)][i], scores[("dl-init", n)][i]) = do_mcmc_dl_init(input_image, n)
+        runtimes[("dl-init", n)][i] = toq()
     end
     JLD.save("mcmc.jld", Dict("traces" => traces, "runtimes" => runtimes))
 end
