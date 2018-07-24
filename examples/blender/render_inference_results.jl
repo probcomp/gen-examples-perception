@@ -21,4 +21,13 @@ for n in [1, 10]
     end
 end
 
-# TODO render MCMC
+# render results of MCMC
+mcmc_data = JLD.load("mcmc.jld")
+mcmc_traces = mcmc_data["traces"]
+mcmc_runtimes = mcmc_data["runtimes"]
+for n in [1, 10]
+    traces = mcmc_traces[n]
+    for (i, trace) in enumerate(traces)
+        render_wireframe(trace, @sprintf("results/mcmc.n%04d.%03d.png", n, i))
+    end
+end

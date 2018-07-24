@@ -72,9 +72,10 @@ const default_body_pose = BodyPose(
     Point3(0.0, 0.0, 0.0),
     Point3(0.0, 0.0, 0.0))
 
+setup_for_depth!(client)
+set_resolution!(client, width, height)
+
 function render_depth(pose::BodyPose)
-    setup_for_depth!(client)
-    set_resolution!(client, width, height)
     tmp = tempname() * ".png"
     set_body_pose!(client, pose)
     render(client, tmp)
@@ -86,8 +87,6 @@ end
 # ensure the convert method gets compiled
 # TODO debug this, may be a bug in FileIO
 tmp = tempname() * ".png"
-setup_for_depth!(client)
-set_resolution!(client, width, height)
 set_body_pose!(client, default_body_pose)
 render(client, tmp)
 img = FileIO.load(tmp)

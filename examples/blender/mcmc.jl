@@ -82,35 +82,39 @@ function mcmc_moves(trace, score)
     (trace, score, accepted, val)
 end
 
-# consruct observation trace
-observed_image = convert(Matrix{Float64}, FileIO.load("simulated.observable.086.png"))
-observations = Trace()
-observations["image"] = observed_image
+function do_mcmc(input_image, n::Int)
 
-# generate initial complete trace
-(trace, score, _, _) = Gen.imp(model, (), observations)
+    # construct trace containing observed image
+    observations = Trace()
+    observations["image"] = input_image
+    
+    # generate initial complete trace
+    (trace, score, _, _) = Gen.imp(model, (), observations)
+    
+    # do MCMC iterations
+    scores = Vector{Float64}(n)
+    for iter=1:n
+        (trace, scores[iter], _, _) = mcmc_moves(trace, score)
+    end
+    
+    (trace, scores)
+end
 
-total_elapsed = 0.
-elapsed = Float64[]
-scores = Float64[]
-num_iter = 10000
-for iter=1:num_iter
-    tic()
-    (trace, score, accepted, val) = mcmc_moves(trace, score)
-    this_elapsed = toq()
-    total_elapsed += this_elapsed
-    push!(elapsed, total_elapsed)
-    (ground_truth_image, blurred_image, observable_image) = val 
-    push!(scores, score)
-    iter_str = @sprintf("iter: %05d", iter)
-    score_str = @sprintf("score: %0.2f", score)
-    accepted_str = "accepted: $accepted"
-    println(iter_str * " " * accepted_str * " " * score_str)
-    if iter % 10 == 0
-        output_filename = @sprintf("mcmc.ground_truth.%05d.png", iter)
-        FileIO.save(output_filename, map(ImageCore.clamp01, ground_truth_image))
+input_image = convert(Matrix{Float64}, FileIO.load("observed.png"))
+traces = Dict()
+runtimes = Dict()
+scores = Dict()
+for n in [1, 10, 100, 1000]
+    println("mcmc n=$n")
+    reps = 20
+    runtimes[n] = Vector{Float64}(reps)
+    traces[n] = Vector{Trace}(reps)
+    scores[n] = Vector{Vector{Float64}}(reps)
+    for i=1:reps
+        println("$i of $reps")
+        tic()
+        (traces[n][i], scores[n][i]) = do_mcmc(input_image, n)
+        runtimes[n][i] = toq()
     end
-    if iter % 1000 == 0
-        JLD.save("scores.jld", Dict("scores" => scores, "elapsed" => elapsed))
-    end
+    JLD.save("mcmc.jld", Dict("traces" => traces, "runtimes" => runtimes))
 end
