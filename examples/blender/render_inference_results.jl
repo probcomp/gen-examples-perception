@@ -10,7 +10,7 @@ render_wireframe(ground_truth_trace, "results/ground_truth.png")
 importance_sampling_data = JLD.load("importance_sampling.jld")
 importance_sampling_traces = importance_sampling_data["traces"]
 importance_sampling_runtimes = importance_sampling_data["runtimes"]
-for n in [1, 10]
+for n in [1, 10, 100, 1000]
     traces = importance_sampling_traces[("prior", n)]
     for (i, trace) in enumerate(traces)
         render_wireframe(trace, @sprintf("results/is.prior.n%04d.%03d.png", n, i))
@@ -25,9 +25,13 @@ end
 mcmc_data = JLD.load("mcmc.jld")
 mcmc_traces = mcmc_data["traces"]
 mcmc_runtimes = mcmc_data["runtimes"]
-for n in [1, 10]
-    traces = mcmc_traces[n]
+for n in [1, 10, 100]
+    traces = mcmc_traces[("prior-init", n)]
     for (i, trace) in enumerate(traces)
-        render_wireframe(trace, @sprintf("results/mcmc.n%04d.%03d.png", n, i))
+        render_wireframe(trace, @sprintf("results/mcmc.prior-init.n%04d.%03d.png", n, i))
+    end
+    traces = mcmc_traces[("dl-init", n)]
+    for (i, trace) in enumerate(traces)
+        render_wireframe(trace, @sprintf("results/mcmc.dl-init.n%04d.%03d.png", n, i))
     end
 end
