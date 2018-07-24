@@ -56,7 +56,7 @@ tf.run(get_ambient_tf_session(), tf.global_variables_initializer())
 saver = tf.train.Saver()
 tf.train.restore(saver, get_ambient_tf_session(), "inference_network_params.jld")
 
-input_fname = "simulated.observable.009.png"
+input_fname = "observed.png"
 input_image = convert(Matrix{Float64}, FileIO.load(input_fname))
 traces = Dict()
 runtimes = Dict()
