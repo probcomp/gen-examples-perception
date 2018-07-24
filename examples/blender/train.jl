@@ -7,7 +7,7 @@ tf = TensorFlow
 include("model.jl")
 include("proposal.jl")
 
-const num_train = 100  
+const num_train = 100000
 
 function generate_training_data()
     traces = Vector{Trace}(num_train)
@@ -47,7 +47,7 @@ function train_inference_network(all_traces, num_iter)
         tf.run(get_ambient_tf_session(), inference_network_update)
         score = total_score / batch_size
         println("iter: $iter, score: $(score)")
-        if iter % 10 == 0
+        if iter % 100 == 0
             saver = tf.train.Saver()
             println("saving params...")
             tf.train.save(saver, get_ambient_tf_session(), "inference_network_params.jld")
@@ -73,5 +73,5 @@ toc()
 
 println("training...")
 tic()
-train_inference_network(traces, 10000)
+train_inference_network(traces, 1000000)
 toc()
