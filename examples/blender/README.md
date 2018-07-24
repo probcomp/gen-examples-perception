@@ -13,12 +13,12 @@ julia train.jl
 
 Then, generate `importance_sampling.jld`:
 ```
-julia importance_sampling.jld
+julia importance_sampling.jl
 ```
 
 Then, generate `mcmc.jld`:
 ```
-julia importance_sampling.jld
+julia mcmc.jl
 ```
 
 Then, generate renderings of the results (populates `results/` directory with renderings of latent states):
