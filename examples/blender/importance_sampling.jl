@@ -82,6 +82,6 @@ for n in [1, 10, 100, 1000]
         traces[("dl", n)][i] = do_importance_sampling_dl(input_image, n)
         runtimes[("dl", n)][i] = toq()
     end
+    JLD.save("importance_sampling.jld", Dict("traces" => traces, "runtimes" => runtimes))
 end
 
-JLD.save("importance_sampling.jld", Dict("traces" => traces, "runtimes" => runtimes))
