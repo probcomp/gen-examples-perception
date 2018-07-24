@@ -47,7 +47,7 @@ const num_pixels = width * height
 
 function make_blender_client()
     client = BlenderClient()
-    connect!(client, "localhost", 59892)
+    connect!(client, "localhost", 59893)
     setup_for_depth!(client)
     set_resolution!(client, width, height)
     set_object_location!(client, "Camera", Point3(0, -8.5, 5))
@@ -91,59 +91,44 @@ rm(tmp)
 mat = convert(Matrix{Float64}, img)
 println(typeof(mat))
 
-rescale(value, min, max) = min + (max - min) * value
-    
+# rescale values from [0, 1] to another interval
+scale(value, min, max) = min + (max - min) * value
+rotation(z) = Point3(0., 0., scale(z, -pi/4, pi/4))
+arm_elbow_r_location(x, y, z) = Point3(scale(x, -1, 0), scale(y, -1, 1), scale(z, -1, 1))
+arm_elbow_r_rotation(z) = Point3(0., 0., scale(z, 0, 2*pi))
+arm_elbow_l_location(x, y, z) = Point3(scale(x, 0, 1), scale(y, -1, 1), scale(z, -1, 1))
+arm_elbow_l_rotation(z) = Point3(0., 0., scale(z, 0, 2*pi))
+hip_location(z) = Point3(0., 0., scale(z, -0.35, 0))
+heel_r_location(x, y, z) = Point3(scale(x, -0.45, 0.1), scale(y, -1, 0.5), scale(z, -0.2, 0.2))
+heel_l_location(x, y, z) = Point3(scale(x, -0.1, 0.45), scale(y, -1, 0.5), scale(z, -0.2, 0.2))
+
 model = @generative function ()
 
-    # whole body rotation
-    rotation = Point3(0., 0.,
-        rescale(@rand(uniform(0, 1), "rotation"), -pi/4, pi/4))
-
-    # right elbow
-    arm_elbow_r_location = Point3(
-        rescale(@rand(uniform(0, 1), "arm_elbow_r_location_dx"), -1, 0),
-        rescale(@rand(uniform(0, 1), "arm_elbow_r_location_dy"), -1, 1),
-        rescale(@rand(uniform(0, 1), "arm_elbow_r_location_dz"), -1, 1))
-
-    arm_elbow_r_rotation = Point3(0., 0.,
-        rescale(@rand(uniform(0, 1), "arm_elbow_r_rotation_dz"), 0, 2*pi))
-
-    # left elbow
-    arm_elbow_l_location = Point3(
-        rescale(@rand(uniform(0, 1), "arm_elbow_l_location_dx"), 0, 1),
-        rescale(@rand(uniform(0, 1), "arm_elbow_l_location_dy"), -1, 1),
-        rescale(@rand(uniform(0, 1), "arm_elbow_l_location_dz"), -1, 1))
-
-    arm_elbow_l_rotation = Point3(0., 0.,
-        rescale(@rand(uniform(0, 1), "arm_elbow_l_rotation_dz"), 0, 2*pi))
-
-    # hip
-    hip_location = Point3(0., 0.,
-        rescale(@rand(uniform(0, 1), "hip_location_dz"), -0.35, 0))
-
-    # right heel
-    heel_r_location = Point3(
-        rescale(@rand(uniform(0, 1), "heel_r_location_dx"), -0.45, 0.1),
-        rescale(@rand(uniform(0, 1), "heel_r_location_dy"), -1, 0.5),
-        rescale(@rand(uniform(0, 1), "heel_r_location_dz"), -0.2, 0.2))
-
-    # left heel
-    heel_l_location = Point3(
-        rescale(@rand(uniform(0, 1), "heel_l_location_dx"), -0.1, 0.45),
-        rescale(@rand(uniform(0, 1), "heel_l_location_dy"), -1, 0.5),
-        rescale(@rand(uniform(0, 1), "heel_l_location_dz"), -0.2, 0.2))
-
-    pose_difference = BodyPose(
-        rotation,
-        arm_elbow_r_location,
-        arm_elbow_l_location,
-        arm_elbow_r_rotation,
-        arm_elbow_l_rotation,
-        hip_location,
-        heel_r_location,
-        heel_l_location)
-
-    pose = default_body_pose + pose_difference
+    pose = BodyPose(
+        rotation(
+            @rand(uniform(0, 1), "rotation")),
+        arm_elbow_r_location(
+            @rand(uniform(0, 1), "arm_elbow_r_location_dx"),
+            @rand(uniform(0, 1), "arm_elbow_r_location_dy"),
+            @rand(uniform(0, 1), "arm_elbow_r_location_dz")),
+        arm_elbow_l_location(
+            @rand(uniform(0, 1), "arm_elbow_l_location_dx"),
+            @rand(uniform(0, 1), "arm_elbow_l_location_dy"),
+            @rand(uniform(0, 1), "arm_elbow_l_location_dz")),
+        arm_elbow_r_rotation(
+            @rand(uniform(0, 1), "arm_elbow_r_rotation_dz")),
+        arm_elbow_l_rotation(
+            @rand(uniform(0, 1), "arm_elbow_l_rotation_dz")),
+        hip_location(
+            @rand(uniform(0, 1), "hip_location_dz")),
+        heel_r_location(
+            @rand(uniform(0, 1), "heel_r_location_dx"),
+            @rand(uniform(0, 1), "heel_r_location_dy"),
+            @rand(uniform(0, 1), "heel_r_location_dz")),
+        heel_l_location(
+            @rand(uniform(0, 1), "heel_l_location_dx"),
+            @rand(uniform(0, 1), "heel_l_location_dy"),
+            @rand(uniform(0, 1), "heel_l_location_dz")))
 
     # render
     ground_truth_image = render(pose)
@@ -159,3 +144,30 @@ model = @generative function ()
     (ground_truth_image, blurred_image, observable_image)
 end
 
+function trace_to_pose(t::Trace)
+    BodyPose(
+        rotation(
+            t["rotation"]),
+        arm_elbow_r_location(
+            t["arm_elbow_r_location_dx"],
+            t["arm_elbow_r_location_dy"],
+            t["arm_elbow_r_location_dz"]),
+        arm_elbow_l_location(
+            t["arm_elbow_l_location_dx"],
+            t["arm_elbow_l_location_dy"],
+            t["arm_elbow_l_location_dz"]),
+        arm_elbow_r_rotation(
+            t["arm_elbow_r_rotation_dz"]),
+        arm_elbow_l_rotation(
+            t["arm_elbow_l_rotation_dz"]),
+        hip_location(
+            t["hip_location_dz"]),
+        heel_r_location(
+            t["heel_r_location_dx"],
+            t["heel_r_location_dy"],
+            t["heel_r_location_dz"]),
+        heel_l_location(
+            t["heel_l_location_dx"],
+            t["heel_l_location_dy"],
+            t["heel_l_location_dz"]))
+end

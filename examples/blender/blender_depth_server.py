@@ -29,11 +29,6 @@ class BlenderService(rpyc.Service):
         pass
 
     def exposed_setup_for_depth(self):
-
-        # do not use subsurface modifier (we are rendering at low resolution anyways)
-        #bpy.data.objects["base model"].modifiers["Subsurf"].show_render = False
-
-        # rendering settings
         self.scene.render.engine = "CYCLES"
         self.scene.cycles.samples=1
         self.scene.render.tile_x=25
@@ -41,12 +36,10 @@ class BlenderService(rpyc.Service):
         self.scene.cycles.max_bounces=0
         self.scene.cycles.caustics_reflective=False
         self.scene.cycles.caustics_refractive=False
-
         self.scene.render.layers[0].use_pass_normal = False
         self.scene.render.layers[0].use_pass_combined = False
         self.scene.render.use_compositing = True
         self.scene.use_nodes = True
-        #self.scene.render.layers[0].use_pass_normal = False # ?
         tree = bpy.context.scene.node_tree
         addNode(tree, 'CompositorNodeNormalize')
         render = tree.nodes['Render Layers']
@@ -56,6 +49,10 @@ class BlenderService(rpyc.Service):
         linkNodes(tree, norm, composite)
         bpy.data.worlds['World'].horizon_color = (0, 0, 0)
         self.scene.render.resolution_percentage = 100
+
+    def exposed_setup_for_wireframe(self):
+        self.scene.render.engine = "BLENDER_RENDER"
+        bpy.data.materials["sss"].type = "WIRE"
 
     def exposed_set_resolution(self, x, y):
         self.scene.render.resolution_x = x
@@ -123,5 +120,5 @@ class BlenderService(rpyc.Service):
         self.exposed_set_bone_location("rig", "heel_L", pose["heel_l_location"])
 
 # note: the model should already have been loaded
-t = BlockingServer(BlenderService, port=59892)
+t = BlockingServer(BlenderService, port=59893)
 t.start()

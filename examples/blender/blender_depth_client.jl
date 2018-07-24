@@ -73,6 +73,11 @@ function setup_for_depth!(client::BlenderClient)
     nothing
 end
 
+function setup_for_wireframe!(client::BlenderClient)
+    client.root[:setup_for_wireframe]()
+    nothing
+end
+
 function set_resolution!(client::BlenderClient, x, y)
     client.root[:set_resolution](x, y)
 end
