@@ -152,7 +152,6 @@ function do_mcmc_inference(reps, num_iters_list, image)
     end
 end
 
-
 tf.run(get_ambient_tf_session(), tf.global_variables_initializer())
 saver = tf.train.Saver()
 tf.train.restore(saver, get_ambient_tf_session(), "inference_network_params.jld")
@@ -162,6 +161,9 @@ observed_image = convert(Matrix{Float64}, FileIO.load("observed.png"))
 ######################
 # regular experiment #
 ######################
+
+# ensure it gets compiled
+do_mcmc_inference(3, [3], observed_image)
 
 do_mcmc_inference(100, [1, 3, 10, 30, 100, 300, 1000], observed_image)
 
