@@ -1,7 +1,7 @@
 \documentclass{article}
 
 \PassOptionsToPackage{numbers, compress}{natbib}
-\usepackage{nips_2017}
+\usepackage[final]{nips_2017}
 \usepackage{listings}
 \usepackage{textcomp}
 \usepackage[usenames,dvipsnames,svgnames]{xcolor}
@@ -11,194 +11,37 @@
 
 \newcommand{\expr}[0]{\texttt{<expr>}}
 \newcommand{\address}[0]{\texttt{<address>}}
+\newcommand{\genaddr}[0]{\mathtt{@addr}}
+\newcommand{\genbackprop}[0]{\mathtt{backprop}}
+\newcommand{\gentracegrad}[0]{\mathtt{trace\_gradient}}
 
 \input{genlisting}
 
-\title{Customizable deep learning and Monte Carlo for probabilistic inference using probabilistic programs}
+\title{Probabilistic programming with programmable deep learning and Monte Carlo inference in GenLite}
+
+\author{
+  Marco F.~Cusumano-Towner\thanks{MIT Probabilistic Computing Project and Computer Science and Artificial Intelligence Laboratory}\\
+  Massachusetts Institute of Technology\\
+  \texttt{marcoct@mit.edu} \\
+  \And
+  Vikash K.~Mansinghka\thanks{MIT Probabilistic Computing Project and Department of Brain and Cognitive Sciences}\\
+  Massachusetts Institute of Technology\\
+  \texttt{vkm@mit.edu}
+}
+
 
 \begin{document}
 
 \maketitle
 
-\begin{abstract}
-
-\end{abstract}
-
-\section{Introduction}
-
-Contributions:
-\begin{enumerate}
-\item A universal probabilistic programming system that combines programmable Monte Carlo inference with scalable and customizable deep learning.
-\item We show how to express data-driven proposals as probabilistic programs that embed custom deep neural networks, and how to train these proposals on data simulated from a generative model.
-\item We show how a simple combination of model-based Monte Carlo and deep learning can improve upon pure deep learning based inference.
-\end{enumerate}
-
-\section{Background}
-
-\subsection{Programmable inference in GenLite}
-GenLite \cite{TODO} is a flexible probabilistic programming language designed to support user-programmable inference.
-This section provides a very brief introduction to GenLite.
-GenLite is embedded in Julia \cite{TODO}.
-In GenLite, users first express a probabilistic generative model as a \emph{generative function}, which is written in an embedded DSL that extends Julia functions with the ability to make traced random choies.
-Then, users implement Monte Carlo inference algorithms for the model in Julia code, drawing heavily on GenLite's inference programming API, which provides core data structures and inference primitives that utilize the programmatic representation of the generative model.
-User inference code is written at a higher level of abstraction than typical custom sampler implementations, which makes it more efficient to develop, maintain, and reason about.
-
-In GenLite, a \emph{trace} is a Julia value (of type \texttt{Trace}) that contains a record of random choices made by some generative function.
-Generative functions, which are declared with keyword \texttt{@gen function}, extend Julia with four language constructs:
-\begin{enumerate}
-\item \texttt{@rand(<expr>, <address>)}: Sample a random value (i.e. a `random choice') from probability distribution \expr{}, where \address{} is a string or tuple of strings that specify a hierarchical name, or `address' for the random choice.
-Record the random choice in the trace at the given address.
-\item \texttt{@call(<expr>, <address>)}: Invoke a generative function given by \expr{}, and record the resulting trace for the invoked function under address \address{} in the current trace.
-\item \texttt{@read(<address>)}: If an input trace is provided, read the value in the input trace at the given \address{}.
-This feature is used by generative functions that represent proposal distributions (see below).
-\item \texttt{@param <name>::<type>}: Declare a trainable parameter of a generative function, which is static (i.e. the same value is shared by all invocations of the generative function).
-Static parameters are initialized by the user outside of the generative function body.
-\end{enumerate}
-
-Note that generative functions can contain arbitrary Julia code.
-Figure~\ref{fig:model-code-figure} shows a generative function that only exercises the \texttt{@rand} keyword.
-In addition to generative models, proposal distributions for MCMC and importance sampling can also be expressed as generative functions \cite{cusumano2018using}.
-
-The GenLite inference programming API contains a number of methods that implement building blocks for inference and learning algorithms.
-A building block that is used for training the static parameters of generative functions is \texttt{backprop}, which has the following type signature:
-\begin{center}
-    \texttt{backprop(fn::GenerativeFunction, args::Tuple, trace::Trace, [input\_trace::Trace])}
-\end{center}
-The trace must be a complete trace of the given generative function for the given arguments to the function.
-This method computes the gradient of the log probability of the trace with respect to all static parameters, using reverse-mode automatic differentiation (AD).
-Each static parameter has a \emph{gradient accumulator}, which is a value that is incremented by the gradient during each call to \texttt{backprop}.
-User Julia code reads and write to the gradient accumulator values and the values of static parameters to perform parameter updates, using GenLite methods:\\
-\texttt{set\_param!(fn::GenerativeFunction, name::Symbol, value)}\\
-\texttt{get\_param(fn::GenerativeFunction, name::Symbol)}\\
-\texttt{get\_param\_grad(fn::GenerativeFunction, name::Symbol)}\\
-\texttt{zero\_param\_grad!(fn::GenerativeFunction, name::Symbol)}
-
-\subsection{Training Proposals on Data Simulated from Generative Models}
-As shown in \cite{cusumano2018using}, proposals represented as generative functions for MCMC and importance sampling can be trained on data simulated from a model to improve the efficiency of the Monte Carlo algorithm.
-A similar approach was proposed by \cite{le2016inference} for use in training a general-purpose neural network for inference in probabilistic programs.
-We briefly summarize the key mathematical ideas here.
-Let $x$ and $y$ denote the values of latent variables and observable variables respectively (e.g. in the model of Figure~\ref{fig:model-code-figure}, the latent variables are the parameters of the glyph, and the observable variable is the noisy image).
-Let $p(x, y)$ denote the joint probability distribution of a generative model for which we want to perform inference about $x$ given $y$, and let $p(y)$ and $p(x)$ denote the two marginal distributions.
-We will take a sampling approach to inference.
-That is, given some $y$, we seek to sample $x$ with probability $p(x | y) := p(x, y) / p(y)$.
-We will assume we have access to a trainable family of proposal distributions denoted $q(x; y, \theta)$.
-This is a family of probability distributions on $x$, parametrized by $y$ and $\theta$, where $\theta$ are trainable parameters.
-We will train the proposal by approximately solving the following optimization problem:
-\[
-\min_{\theta} \mathbb{E}_{y \sim p(\cdot)} \left[ \mbox{KL}(p(x | y) || q(x; y, \theta)) \right]
-\]
-Intuitively, we seek to find a proposal that is close to $p(x | y)$ in KL divergence from $p$ to $q$ for typical observations $y$ sampled from the model's prior distribution on observations ($y \sim p(\cdot)$).
-This is equivalent to maximizing the expected conditional log likelihood:
-\[
-\max_{\theta} \mathbb{E}_{x, y \sim p(\cdot, \cdot)} \left[ \log q(x; y, \theta) \right]
-\]
-Therefore, we can use stochastic gradient ascent, where we obtain training instances by sampling $x, y \sim p(\cdot, \cdot)$, which amounts to a joint sample from the generative model.
-If the generative model is expressed as generative function in GenLite, we can obtain a trace that contains both $x$ and $y$, using the \texttt{simulate} API method:
-\begin{center}
-    \texttt{(trace::Trace, score, val) = simulate(::GenerativeFunction, args::Tuple)}
-\end{center}
-If the proposal is also expressed as a generative function, then we can implement $\theta$ using static parameters of the generative function, and compute the required gradients $\nabla_{\theta} \log q(x; y, \theta)$ using \texttt{backprop}, passing the simulated model trace as both the input trace (from which $y$ will be read) and the trace of the proposal generative function itself (from which $x$ is read).
-
-Once we have a trained proposal, we can use it in a variety of model-based Monte Carlo algorithms, which are able to asymptotically correct for errors in the distribution $q(x; y, \theta)$ relative to the target distribution $p(x | y)$.
-For example, if the proposal distribution is typically `too wide' relative to the posterior (which is expected due to the specific direction of KL divergence being optimized), then applying importance sampling with the given proposal is one way of generating asymptotically exact samples from the posterior.
-The number of importance samples required to reach a given level of error for some observations $y$ is roughly exponential in the KL divergence $\mbox{KL}(p(x | y) || q(x; y, \theta))$, as shown in recent theoretical work on importance sampling \cite{chatterjee2018sample}.
-
-Note that the same approach can also be used to learn other conditional distributions besides the posterior $p(x | y)$.
-For example, if there are two groups of latent variables $x_1$ and $x_2$, we can train two different proposals to match $p(x_1 | x_2, y)$ and $p(x_2 | x_1, y)$, respectively.
-These proposals can then be used to approximate a Gibbs sampler.
-Finally, note that proposals that generate latent variables given the observations are often called `data-driven proposals' (e.g. \cite{tu2002image}).
-
-\section{Scalable Deep Learning in GenLite Using TensorFlow}
-Although it is possible to implement deep neural networks in Julia and invoke these from generative functions using static parameters to store network weights, support for GPU and deep learning in Julia is still new.
-Therefore, GenLite includes the option of using TensorFlow for deep learning.
-We extend GenLite with a \texttt{tf\_function} and \texttt{tf\_call} language constructs.
-The \texttt{tf\_function} keyword is used to define \emph{GenLite TensorFlow functions}, which are functional TensorFlow computations with declared inputs, trainable parameters, and an output, that can be invoked by generative functions (see Figure~\ref{fig:proposal-code-figure} for an example).
-Within \texttt{tf\_function} blocks, we construct TensorFlow computations using the TensorFlow.jl \cite{?} wrapper around the TensorFlow C API, as well as three new keywords that facilitate integration with GenLite:
-\begin{enumerate}
-\item \texttt{@input <name> <dtype> <shape>}:
-Assigns a TF placeholder with given data type and shape to variable \texttt{name}, and registers this with GenLite as an input of the TF function.
-\item \texttt{@param <name> <initial-julia-value>}:
-Declare a static parameter for the TensorFlow function.
-Assigns a TF variable with given initial value variable \texttt{name}, and registers this with GenLite as an input of the TF function.
-GenLite constructs an additional variable to store the accumulated gradient of output with respect to the variable \texttt{<name>}.
-\item \texttt{@output <dtype> <tensor-value>}:
-Registers the given tensor value as the output of the TF function and statically declares its data type.
-\end{enumerate}
-Note that static parameters of TensorFlow functions have similar semantics to static parameters of generative functions, but are implemented differently (e.g. the values are owned by the TensorFlow runtime instead of Julia) and are accessed and modified using a different interface (a TensorFlow interface as opposed to a Julia interface).
-
-TensorFlow functions are invoked by generative functions using:
-\begin{center}
-    \texttt{@tf\_call(<tf-function>([input1, [input2, ..]]))}
-\end{center}
-where each input is a Julia value corresponding to an \texttt{@input} declaration (in the order of the declarations in the body of the function).
-Evaluating a \texttt{@tf\_call} expression invokes the TF computation and returns the tensor registered as \texttt{@output} as a Julia \texttt{Array} value.
-When the expression is evaluated in GenLite's \texttt{backprop} API method, evaluating the \texttt{@tf\_call} expression also causes a cell for the TF function to be placed on the GenLite's AD tape (see Figure~\ref{fig:tf-integration-schematic}).
-During the backward pass of reverse-mode AD, the gradient with respect to \texttt{@output} is used to increment the gradient with respect to the inputs, by invoking the appropriate TensorFlow gradient computation.
-The gradient with respect to the registered parameters are also computed in TensorFlow, but instead of being passed back into Julia, the parameter gradient values are used to increment TensorFlow gradient accumulator variables.
-
-The user writes TensorFlow code to update the parameters of a TensorFlow function based on the accumulated gradients.
-The update code is defined separately to the \texttt{@tf\_function} definition, to preserve the functional semantics of the TensorFlow function.
-GenLite provides methods that give access the TF variables for the parameters and their gradients for a given TensorFlow function (e.g. \texttt{get\_param\_var} and \texttt{get\_param\_grad}) see Figure~\ref{fig:training-code-figure}(a)).
-The update code is responsible for updating the variables and resetting the gradients to zero (a helper function \texttt{get\_zero\_grad\_op} is provided for this).
-Note that Tensorflow parameters and gradients are not copied between the TensorFlow and Julia runtimes during either backpropagation or update.
-
-Finally, note that because gradients may be accumulated over multiple backpropagation passes, users have the option of performing batch parameter optimization without writing vectorized (i.e. batched) code.
-Of course, users may also write batched TensorFlow code, in which case executions of the parameter update are interleaved with executions of \texttt{backprop}.
-
-\begin{figure}[h]
-\centering
-    \includegraphics[width=0.7\textwidth]{images/tf-integration-schematic.pdf}
-    \caption{
-Reverse-mode AD in GenLite interoperates with `GenLite TensorFlow functions', which are blocks of functional TensorFlow (TF) code with inputs (corresponding to TF placeholders), trainable parameters (corresponding to TF variables), and an output, that are invoked by GenLite generative functions.
-Each invocation of a TF function produces a single element on GenLite's reverse-mode AD tape.
-During the backward pass (solid lines), we receive the gradient with respect to the output (\texttt{@output}) of the TF function; TF is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
-The gradients with respect to the parameters are accumulated across multiple backward passes, until an parameter update is performed.
-A parameter update (dashed line) changes the parameter values using the accumulated gradient (in addition to state of the update operation itself), and resets the gradient accumulators to zero.
-Parameter updates are TF computations that are defined by the user separately from the TF function itself.
-}
-    \label{fig:tf-integration-schematic}
-\end{figure}
-
-\include{model_code_figure}
-\include{proposal_code_figure}
-\include{training_code_figure}
-\include{inference_code_figure}
-
-\section{Example}
-This section illustrates the technique using a computer vision application.
-Figure~\ref{fig:model-code-figure} shows a generative model for blurry images of letters, expressed as a generative function in GenLite.
-The model first samples the location, orientiation, size, and identity of the letter from a prior distribution, then renders the image using a graphics library, adds Gaussian blur to the image, and finally adds independent pixel-wise `speckle' noise to the image.
-Figure~\ref{fig:proposal-code-figure} shows a data-driven proposal for the latent variables of the generative model given the observed image, also expressed as a generative function.
-This generative function invokes a deep convolutional neural network implemented in TensorFlow.
-Next, Figure~\ref{fig:training-code-figure} shows the code for training the proposal on data generated from the generative model.
-Figure~\ref{fig:inference-code-figure} shows the implementation of an sampling-importance-resampling algorithm that uses the trained proposal.
-Finally, Figure~\ref{fig:example-results} shows an observed image, as well as renderings of the latent variables produced from importance sampling using the trained proposal.
-
-\begin{figure}[h]
-\centering
-    \includegraphics[width=1.0\textwidth]{images/deep-neural-network-is.pdf}
-    \caption{
-Results of inference in the generative model of Figure~\ref{fig:model-code-figure} using a combination of deep learning and model-based Monte Carlo.
-On the left is the observed image, followed by a set of 10 of latent images sampled from the trained deep neural network proposal (\texttt{proposal} in Figure~\ref{fig:proposal-code-figure}), and a set of 10 latent images sampled using importance sampling, with the trained deep neural network proposal as the importance distribution.
-The deep neural network was trained on traces and images jointly sampled from the generative model, using ADAM with 170,000 iterations, each with batch size 100 (total time 5hrs on Tesla K80 GPU).
-The deep neural network proposal is uncertain about the location and orientiation of the letter.
-Augmenting the neural network with model-based importance sampling gives more accurate inferences.
-}
-    \label{fig:example-results}
-\end{figure}
-
-
-\section{Related Work}
-\begin{itemize}
-\item Guide programs in Pyro
-\item Using probabilisic programs as proposals \cite{cusumano2018using}
-\item Edward \cite{tran2016edward}
-\item Stuart Russell work on block neural proposals \cite{wang2017neural}
-\item Univeral compiled inference in probabilistic programs \cite{le2016inference}
-\item Stochastic inverses \cite{stuhlmuller2013learning}
-\item Wake sleep, Helmholtz machines, VAE
-\item Other work on data-driven proposals (e.g. \cite{tu2002image}).
-\end{itemize}
+\input{abstract}
+\input{introduction}
+\input{genlite}
+\input{training}
+\input{tensorflow}
+\input{examples}
+\input{related}
+\input{discussion}
 
 \subsubsection*{Acknowledgments}
 This research was supported by DARPA (PPAML program, contract number FA8750-14-2-0004), IARPA (under research contract 2015-15061000003), the Office of Naval Research (under research contract N000141310333), the Army Research Office (under agreement number W911NF-13-1-0212), and gifts from Analog Devices and Google.

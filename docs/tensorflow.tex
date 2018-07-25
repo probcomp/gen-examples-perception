@@ -1,0 +1,61 @@
+\section{Scalable Deep Learning with TensorFlow Integration}
+
+% language (functional subset of TensorFlow with @param)
+
+% implementation (hybrid AD)
+
+Although it is possible to implement deep neural networks in Julia and invoke these from generative functions using static parameters to store network weights, support for GPU and deep learning in Julia is still new.
+Therefore, GenLite includes the option of using TensorFlow for deep learning.
+We extend GenLite with a \texttt{tf\_function} and \texttt{tf\_call} language constructs.
+The \texttt{tf\_function} keyword is used to define \emph{GenLite TensorFlow functions}, which are functional TensorFlow computations with declared inputs, trainable parameters, and an output, that can be invoked by generative functions (see Figure~\ref{fig:proposal-code-figure} for an example).
+Within \texttt{tf\_function} blocks, we construct TensorFlow computations using the TensorFlow.jl \cite{?} wrapper around the TensorFlow C API, as well as three new keywords that facilitate integration with GenLite:
+\begin{enumerate}
+\item \texttt{@input <name> <dtype> <shape>}:
+Assigns a TF placeholder with given data type and shape to variable \texttt{name}, and registers this with GenLite as an input of the TF function.
+\item \texttt{@param <name> <initial-julia-value>}:
+Declare a static parameter for the TensorFlow function.
+Assigns a TF variable with given initial value variable \texttt{name}, and registers this with GenLite as an input of the TF function.
+GenLite constructs an additional variable to store the accumulated gradient of output with respect to the variable \texttt{<name>}.
+\item \texttt{@output <dtype> <tensor-value>}:
+Registers the given tensor value as the output of the TF function and statically declares its data type.
+\end{enumerate}
+Note that static parameters of TensorFlow functions have similar semantics to static parameters of generative functions, but are implemented differently (e.g. the values are owned by the TensorFlow runtime instead of Julia) and are accessed and modified using a different interface (a TensorFlow interface as opposed to a Julia interface).
+
+TensorFlow functions are invoked by generative functions using:
+\begin{center}
+    \texttt{@tf\_call(<tf-function>([input1, [input2, ..]]))}
+\end{center}
+where each input is a Julia value corresponding to an \texttt{@input} declaration (in the order of the declarations in the body of the function).
+Evaluating a \texttt{@tf\_call} expression invokes the TF computation and returns the tensor registered as \texttt{@output} as a Julia \texttt{Array} value.
+When the expression is evaluated in GenLite's \texttt{backprop} API method, evaluating the \texttt{@tf\_call} expression also causes a cell for the TF function to be placed on the GenLite's AD tape (see Figure~\ref{fig:tf-integration-schematic}).
+During the backward pass of reverse-mode AD, the gradient with respect to \texttt{@output} is used to increment the gradient with respect to the inputs, by invoking the appropriate TensorFlow gradient computation.
+The gradient with respect to the registered parameters are also computed in TensorFlow, but instead of being passed back into Julia, the parameter gradient values are used to increment TensorFlow gradient accumulator variables.
+
+The user writes TensorFlow code to update the parameters of a TensorFlow function based on the accumulated gradients.
+The update code is defined separately to the \texttt{@tf\_function} definition, to preserve the functional semantics of the TensorFlow function.
+GenLite provides methods that give access the TF variables for the parameters and their gradients for a given TensorFlow function (e.g. \texttt{get\_param\_var} and \texttt{get\_param\_grad}) see Figure~\ref{fig:training-code-figure}(a)).
+The update code is responsible for updating the variables and resetting the gradients to zero (a helper function \texttt{get\_zero\_grad\_op} is provided for this).
+Note that Tensorflow parameters and gradients are not copied between the TensorFlow and Julia runtimes during either backpropagation or update.
+
+Finally, note that because gradients may be accumulated over multiple backpropagation passes, users have the option of performing batch parameter optimization without writing vectorized (i.e. batched) code.
+Of course, users may also write batched TensorFlow code, in which case executions of the parameter update are interleaved with executions of \texttt{backprop}.
+
+\begin{figure}[h]
+\centering
+    \includegraphics[width=0.7\textwidth]{images/tf-integration-schematic.pdf}
+    \caption{
+Reverse-mode AD in GenLite interoperates with `GenLite TensorFlow functions', which are blocks of functional TensorFlow (TF) code with inputs (corresponding to TF placeholders), trainable parameters (corresponding to TF variables), and an output, that are invoked by GenLite generative functions.
+Each invocation of a TF function produces a single element on GenLite's reverse-mode AD tape.
+During the backward pass (solid lines), we receive the gradient with respect to the output (\texttt{@output}) of the TF function; TF is used to compute the gradients with respect to inputs (\texttt{@input}) and parameters (\texttt{@params}).
+The gradients with respect to the parameters are accumulated across multiple backward passes, until an parameter update is performed.
+A parameter update (dashed line) changes the parameter values using the accumulated gradient (in addition to state of the update operation itself), and resets the gradient accumulators to zero.
+Parameter updates are TF computations that are defined by the user separately from the TF function itself.
+}
+    \label{fig:tf-integration-schematic}
+\end{figure}
+
+\include{model_code_figure}
+\include{proposal_code_figure}
+\include{training_code_figure}
+\include{inference_code_figure}
+

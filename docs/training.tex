@@ -1,0 +1,39 @@
+\section{Training Custom Proposals on Simulated Data}
+
+% math relating KL and maximum likelihood
+
+As shown in \cite{cusumano2018using}, proposals represented as generative functions for MCMC and importance sampling can be trained on data simulated from a model to improve the efficiency of the Monte Carlo algorithm.
+A similar approach was proposed by \cite{le2016inference} for use in training a general-purpose neural network for inference in probabilistic programs.
+We briefly summarize the key mathematical ideas here.
+Let $x$ and $y$ denote the values of latent variables and observable variables respectively (e.g. in the model of Figure~\ref{fig:model-code-figure}, the latent variables are the parameters of the glyph, and the observable variable is the noisy image).
+Let $p(x, y)$ denote the joint probability distribution of a generative model for which we want to perform inference about $x$ given $y$, and let $p(y)$ and $p(x)$ denote the two marginal distributions.
+We will take a sampling approach to inference.
+That is, given some $y$, we seek to sample $x$ with probability $p(x | y) := p(x, y) / p(y)$.
+We will assume we have access to a trainable family of proposal distributions denoted $q(x; y, \theta)$.
+This is a family of probability distributions on $x$, parametrized by $y$ and $\theta$, where $\theta$ are trainable parameters.
+We will train the proposal by approximately solving the following optimization problem:
+\[
+\min_{\theta} \mathbb{E}_{y \sim p(\cdot)} \left[ \mbox{KL}(p(x | y) || q(x; y, \theta)) \right]
+\]
+Intuitively, we seek to find a proposal that is close to $p(x | y)$ in KL divergence from $p$ to $q$ for typical observations $y$ sampled from the model's prior distribution on observations ($y \sim p(\cdot)$).
+This is equivalent to maximizing the expected conditional log likelihood:
+\[
+\max_{\theta} \mathbb{E}_{x, y \sim p(\cdot, \cdot)} \left[ \log q(x; y, \theta) \right]
+\]
+Therefore, we can use stochastic gradient ascent, where we obtain training instances by sampling $x, y \sim p(\cdot, \cdot)$, which amounts to a joint sample from the generative model.
+If the generative model is expressed as generative function in GenLite, we can obtain a trace that contains both $x$ and $y$, using the \texttt{simulate} API method:
+\begin{center}
+    \texttt{(trace::Trace, score, val) = simulate(::GenerativeFunction, args::Tuple)}
+\end{center}
+If the proposal is also expressed as a generative function, then we can implement $\theta$ using static parameters of the generative function, and compute the required gradients $\nabla_{\theta} \log q(x; y, \theta)$ using \texttt{backprop}, passing the simulated model trace as both the input trace (from which $y$ will be read) and the trace of the proposal generative function itself (from which $x$ is read).
+
+Once we have a trained proposal, we can use it in a variety of model-based Monte Carlo algorithms, which are able to asymptotically correct for errors in the distribution $q(x; y, \theta)$ relative to the target distribution $p(x | y)$.
+For example, if the proposal distribution is typically `too wide' relative to the posterior (which is expected due to the specific direction of KL divergence being optimized), then applying importance sampling with the given proposal is one way of generating asymptotically exact samples from the posterior.
+The number of importance samples required to reach a given level of error for some observations $y$ is roughly exponential in the KL divergence $\mbox{KL}(p(x | y) || q(x; y, \theta))$, as shown in recent theoretical work on importance sampling \cite{chatterjee2018sample}.
+
+Note that the same approach can also be used to learn other conditional distributions besides the posterior $p(x | y)$.
+For example, if there are two groups of latent variables $x_1$ and $x_2$, we can train two different proposals to match $p(x_1 | x_2, y)$ and $p(x_2 | x_1, y)$, respectively.
+These proposals can then be used to approximate a Gibbs sampler.
+Finally, note that proposals that generate latent variables given the observations are often called `data-driven proposals' (e.g. \cite{tu2002image}).
+
+

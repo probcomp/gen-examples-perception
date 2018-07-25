@@ -1,0 +1,31 @@
+\section{Examples}
+
+\subsection{Character recognition}
+This section illustrates the technique using a computer vision application.
+Figure~\ref{fig:model-code-figure} shows a generative model for blurry images of letters, expressed as a generative function in GenLite.
+The model first samples the location, orientiation, size, and identity of the letter from a prior distribution, then renders the image using a graphics library, adds Gaussian blur to the image, and finally adds independent pixel-wise `speckle' noise to the image.
+Figure~\ref{fig:proposal-code-figure} shows a data-driven proposal for the latent variables of the generative model given the observed image, also expressed as a generative function.
+This generative function invokes a deep convolutional neural network implemented in TensorFlow.
+Next, Figure~\ref{fig:training-code-figure} shows the code for training the proposal on data generated from the generative model.
+Figure~\ref{fig:inference-code-figure} shows the implementation of an sampling-importance-resampling algorithm that uses the trained proposal.
+Finally, Figure~\ref{fig:example-results} shows an observed image, as well as renderings of the latent variables produced from importance sampling using the trained proposal.
+
+\begin{figure}[h]
+\centering
+    \includegraphics[width=1.0\textwidth]{images/deep-neural-network-is.pdf}
+    \caption{
+Results of inference in the generative model of Figure~\ref{fig:model-code-figure} using a combination of deep learning and model-based Monte Carlo.
+On the left is the observed image, followed by a set of 10 of latent images sampled from the trained deep neural network proposal (\texttt{proposal} in Figure~\ref{fig:proposal-code-figure}), and a set of 10 latent images sampled using importance sampling, with the trained deep neural network proposal as the importance distribution.
+The deep neural network was trained on traces and images jointly sampled from the generative model, using ADAM with 170,000 iterations, each with batch size 100 (total time 5hrs on Tesla K80 GPU).
+The deep neural network proposal is uncertain about the location and orientiation of the letter.
+Augmenting the neural network with model-based importance sampling gives more accurate inferences.
+}
+    \label{fig:example-results}
+\end{figure}
+
+\input{model_code_figure}
+\input{proposal_code_figure}
+\input{training_code_figure}
+\input{inference_code_figure}
+
+\subsection{Inferring human body pose from depth image}

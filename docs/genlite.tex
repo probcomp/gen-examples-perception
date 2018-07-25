@@ -1,0 +1,67 @@
+\section{Probabilistic programming with custom inference in GenLite}
+
+\subsection{Generative functions}
+
+\subsubsection{Random choices}
+
+\subsubsection{Reading from an input trace}
+
+\subsubsection{Trainable static parameters}
+
+\subsubsection{Calling other generative functions}
+
+\subsection{Selection functions}
+
+\subsection{High-level embedded inference programming}
+
+\subsubsection{Traces are user-space Julia values}
+
+\subsubsection{Observation traces}
+
+\subsubsection{Monte Carlo inference operators}
+
+% imp, imp2, mh, mh2
+
+% the full set of inference operators, and the semantics of these operators, are outside the scope of this paper
+
+\subsubsection{Training generative functions using $\genbackprop{}$}
+
+\subsubsection{Gradient-based MAP using $\gentracegrad{}$}
+
+GenLite \cite{TODO} is a flexible probabilistic programming language designed to support user-programmable inference.
+This section provides a very brief introduction to GenLite.
+GenLite is embedded in Julia \cite{TODO}.
+In GenLite, users first express a probabilistic generative model as a \emph{generative function}, which is written in an embedded DSL that extends Julia functions with the ability to make traced random choies.
+Then, users implement Monte Carlo inference algorithms for the model in Julia code, drawing heavily on GenLite's inference programming API, which provides core data structures and inference primitives that utilize the programmatic representation of the generative model.
+User inference code is written at a higher level of abstraction than typical custom sampler implementations, which makes it more efficient to develop, maintain, and reason about.
+
+In GenLite, a \emph{trace} is a Julia value (of type \texttt{Trace}) that contains a record of random choices made by some generative function.
+Generative functions, which are declared with keyword \texttt{@gen function}, extend Julia with four language constructs:
+\begin{enumerate}
+\item \texttt{@rand(<expr>, <address>)}: Sample a random value (i.e. a `random choice') from probability distribution \expr{}, where \address{} is a string or tuple of strings that specify a hierarchical name, or `address' for the random choice.
+Record the random choice in the trace at the given address.
+\item \texttt{@call(<expr>, <address>)}: Invoke a generative function given by \expr{}, and record the resulting trace for the invoked function under address \address{} in the current trace.
+\item \texttt{@read(<address>)}: If an input trace is provided, read the value in the input trace at the given \address{}.
+This feature is used by generative functions that represent proposal distributions (see below).
+\item \texttt{@param <name>::<type>}: Declare a trainable parameter of a generative function, which is static (i.e. the same value is shared by all invocations of the generative function).
+Static parameters are initialized by the user outside of the generative function body.
+\end{enumerate}
+
+Note that generative functions can contain arbitrary Julia code.
+Figure~\ref{fig:model-code-figure} shows a generative function that only exercises the \texttt{@rand} keyword.
+In addition to generative models, proposal distributions for MCMC and importance sampling can also be expressed as generative functions \cite{cusumano2018using}.
+
+The GenLite inference programming API contains a number of methods that implement building blocks for inference and learning algorithms.
+A building block that is used for training the static parameters of generative functions is \texttt{backprop}, which has the following type signature:
+\begin{center}
+    \texttt{backprop(fn::GenerativeFunction, args::Tuple, trace::Trace, [input\_trace::Trace])}
+\end{center}
+The trace must be a complete trace of the given generative function for the given arguments to the function.
+This method computes the gradient of the log probability of the trace with respect to all static parameters, using reverse-mode automatic differentiation (AD).
+Each static parameter has a \emph{gradient accumulator}, which is a value that is incremented by the gradient during each call to \texttt{backprop}.
+User Julia code reads and write to the gradient accumulator values and the values of static parameters to perform parameter updates, using GenLite methods:\\
+\texttt{set\_param!(fn::GenerativeFunction, name::Symbol, value)}\\
+\texttt{get\_param(fn::GenerativeFunction, name::Symbol)}\\
+\texttt{get\_param\_grad(fn::GenerativeFunction, name::Symbol)}\\
+\texttt{zero\_param\_grad!(fn::GenerativeFunction, name::Symbol)}
+

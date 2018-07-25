@@ -1,0 +1,57 @@
+\begin{figure}[t]
+\begin{subfigure}[b]{0.6\textwidth}
+\begin{lstlisting}
+grads_and_vars = []
+zero_grad_ops = []
+for (param_name) in <@\infr{get\_param\_names}@>(network)
+  grad = tf.negative(<@\infr{get\_param\_grad}@>(network, param_name))
+  var = <@\infr{get\_param\_var}@>(network, param_name)
+  push!(grads_and_vars, (grad, var))
+  push!(zero_grad_ops, <@\infr{get\_zero\_grad\_op}@>(network, param_name))
+end
+optimizer = tf.train.AdamOptimizer(1e-4)
+network_update = tf.group(
+  tf.train.apply_gradients(optimizer, grads_and_vars),
+  zero_grad_ops...)
+\end{lstlisting}
+\caption{Defining the update to the TensorFlow parameters}
+\end{subfigure}%
+\begin{subfigure}[b]{0.4\textwidth}
+\begin{lstlisting}
+num_train = 100000
+traces = Vector{Trace}(num_train)
+for i=1:num_train
+  (traces[i], _, _) = <@\infr{simulate}@>(model, ())
+end
+\end{lstlisting}
+\caption{Simulating training data from the model}
+\end{subfigure}
+\begin{subfigure}[b]{\textwidth}
+\begin{lstlisting}
+tf.run(get_tf_session(), tf.global_variables_initializer())
+batch_size = 100
+for iter=1:num_iter
+  batch_idx = randperm(num_train)[1:batch_size]
+  traces = all_traces[batch_idx]
+  vector_trace = <@\infr{vectorize}@>(traces)
+  (total_score, _) = <@\infr{backprop}@>(proposal_batch, (batch_size,), vector_trace, vector_trace)
+  tf.run(get_tf_session(), network_update)
+  score = total_score / batch_size
+end
+\end{lstlisting}
+\caption{Training the proposal on simulated data}
+\end{subfigure}
+\caption{
+Julia code for training the data-driven proposal distribution of Figure~\ref{fig:proposal-code-figure} to propose the latent variables of the generative model (\texttt{model}) of Figure~\ref{fig:model-code-figure} given an observed image.
+In (a), we define an TensorFlow (TF) operation (\texttt{network\_update}) that will be used to update the parameters of the TF function \texttt{network} (defined in Figure~\ref{fig:proposal-code-figure}.
+We define the operation in terms of the parameter value variables and parameter gradient accumulator variables that are accessible with GenLite API functions \texttt{get\_param\_var} and \texttt{get\_param\_grad}, respectively.
+The update applies an ADAM update to all of the parameters and then zeros-out the gradient accumulators.
+Next, in (b), we generate training data by sampling traces from the model.
+These traces contain both the observed image (at address \texttt{"image"}) and all of the latent variables (\texttt{"x"}, \texttt{"y"}, ..).
+Finally, in (c), we perform training using batches.
+We group a set of traces of \texttt{model} into a vector-shaped trace using \texttt{vectorize}.
+We then run \texttt{backprop} on the generative function \texttt{proposal\_batch}, where we use \texttt{vector\_trace} as both the input trace (from which the image is read) and the output trace (which contains the ground truth latent variables for the corresponding image).
+GenLite API functions are shown in purple.
+}
+\label{fig:training-code-figure}
+\end{figure}
