@@ -33,4 +33,4 @@ Trained network weights (`inference_network_params.jld`), importance sampling re
 The bottleneck is the renderer.
 
 Below are the results of profiling `mcmc.jl`. The red columns are all calls to `render_depth.jl`:
-![ProfileView of mcmc.jl](images/mcmc-profile.png)
+![ProfileView of mcmc.jl](mcmc_profile_results.svg)

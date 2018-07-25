@@ -123,35 +123,59 @@ function do_mcmc_dl_init(input_image, n::Int)
     (trace, scores)
 end
 
+function do_mcmc_inference(reps, num_iters_list, image)
+    traces = Dict()
+    runtimes = Dict()
+    scores = Dict()
+    for n in num_iters_list
+        println("mcmc n=$n")
+        runtimes[("prior-init", n)] = Vector{Float64}(reps)
+        traces[("prior-init", n)] = Vector{Trace}(reps)
+        scores[("prior-init", n)] = Vector{Vector{Float64}}(reps)
+        runtimes[("dl-init", n)] = Vector{Float64}(reps)
+        traces[("dl-init", n)] = Vector{Trace}(reps)
+        scores[("dl-init", n)] = Vector{Vector{Float64}}(reps)
+        for i=1:reps
+            println("$i of $reps")
+    
+            println("prior-init")
+            tic()
+            (traces[("prior-init", n)][i], scores[("prior-init", n)][i]) = do_mcmc_prior_init(observed_image, n)
+            runtimes[("prior-init", n)][i] = toq()
+    
+            println("dl-init")
+            tic()
+            (traces[("dl-init", n)][i], scores[("dl-init", n)][i]) = do_mcmc_dl_init(observed_image, n)
+            runtimes[("dl-init", n)][i] = toq()
+        end
+        JLD.save("mcmc.jld", Dict("traces" => traces, "runtimes" => runtimes))
+    end
+end
+
+
 tf.run(get_ambient_tf_session(), tf.global_variables_initializer())
 saver = tf.train.Saver()
 tf.train.restore(saver, get_ambient_tf_session(), "inference_network_params.jld")
 
-input_image = convert(Matrix{Float64}, FileIO.load("observed.png"))
-traces = Dict()
-runtimes = Dict()
-scores = Dict()
-for n in [1, 10, 100, 1000]
-    println("mcmc n=$n")
-    reps = 20
-    runtimes[("prior-init", n)] = Vector{Float64}(reps)
-    traces[("prior-init", n)] = Vector{Trace}(reps)
-    scores[("prior-init", n)] = Vector{Vector{Float64}}(reps)
-    runtimes[("dl-init", n)] = Vector{Float64}(reps)
-    traces[("dl-init", n)] = Vector{Trace}(reps)
-    scores[("dl-init", n)] = Vector{Vector{Float64}}(reps)
-    for i=1:reps
-        println("$i of $reps")
+observed_image = convert(Matrix{Float64}, FileIO.load("observed.png"))
 
-        println("prior-init")
-        tic()
-        (traces[("prior-init", n)][i], scores[("prior-init", n)][i]) = do_mcmc_prior_init(input_image, n)
-        runtimes[("prior-init", n)][i] = toq()
+######################
+# regular experiment #
+######################
 
-        println("dl-init")
-        tic()
-        (traces[("dl-init", n)][i], scores[("dl-init", n)][i]) = do_mcmc_dl_init(input_image, n)
-        runtimes[("dl-init", n)][i] = toq()
-    end
-    JLD.save("mcmc.jld", Dict("traces" => traces, "runtimes" => runtimes))
-end
+do_mcmc_inference(100, [1, 3, 10, 30, 100, 300, 1000], observed_image)
+
+#######################
+# profiled experiment #
+#######################
+
+## force compilation
+#do_mcmc_inference(2, [1, 2], observed_image)
+#
+## do profiled run
+#@profile do_mcmc_inference(20, [1, 10], observed_image)
+#
+## save profiling data for later analysis
+#using JLD
+#li, lidict = Profile.retrieve()
+#@save "mcmc.jlprof" li lidict
