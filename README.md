@@ -7,8 +7,8 @@ We first set up a python environment that contains a specific version of TensorF
 Create a python3 virtual environment, and install TensorFlow and matplotlib, and (rpyc)[https://rpyc.readthedocs.io/en/latest/], which is used for the blender rendering server/client.
 We also need the path to the python3 executable in this virtualenv.
 ```
-virtualenv -p python3 my-env
-source ~/my-env/bin/activate
+virtualenv -p python3 ~/python3-env
+source ~/python3-env/activate
 pip3 install tensorflow==1.8.0
 pip3 install matplotlib
 pip3 install rpyc
