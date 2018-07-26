@@ -1,9 +1,9 @@
 \section{Probabilistic programming with custom inference in GenLite}
 
-GenLite is a probabilistic programming system implemented on top of Julia \cite{?}.
+GenLite is a probabilistic modeling and inference platform implemented on top of Julia \cite{?}.
 GenLite consists of a probabilistic programming language embedded in Julia, and an inference and learning API.
 Users define generative models by writing \emph{generative functions}, which are Julia functions that are augmented with random choices that play the role of latent and observed random variables.
-Unlike other probabilistic systems, users implement inference algorithms in host language (Julia) code, building on high-level inference abstractions provided by the inference and learning API.
+Unlike other probabilistic programming platforms, users implement inference algorithms in host language (Julia) code, building on high-level abstractions provided by the inference and learning API.
 GenLite also contains auxiliary domain-specific languages for inference, which augment Julia functions with additional behavior and semantics:
 First, \emph{selection functions} are used to identify subsets of random choices, and \emph{bijective functions} are used to define probability-preserving transformations between latent variable representations.
 The remainder of this section provides additional details for those features of GenLite that are relevant to user-programmable inference based on deep learning.
@@ -29,7 +29,7 @@ We denote the probability of a trace $t$ for generative function $p$ by $p(t)$.
 When continuous random choices are included, a generative function that terminates with probability one denotes a measure on traces.
 See \cite{CusumanoPLDI2018} and \cite{Borgstrom} for examples of trace-based semantics for probabilistic programming languages.
 Finally, note that not all random choices made by a generative function need to be assigned addresses---random choices without addresses are called \emph{untraced}.
-Untraced random choices allow GenLite functions to invoke arbitrary black box code.
+The ability to make untraced random choices means that GenLite functions can invoke arbitrary black box code.
 
 \paragraph{Reading from an input trace}
 Each generative function defines a distribution on its own trace.
