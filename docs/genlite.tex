@@ -7,15 +7,15 @@
     \label{fig:genlite-schematic}
 \end{figure}
 
-GenLite is a probabilistic modeling and inference platform implemented on top of Julia \cite{?}.
+GenLite is a probabilistic modeling and inference platform implemented on top of Julia \cite{TODO}.
 GenLite consists of a probabilistic programming language embedded in Julia, and an inference and learning API.
 Users define generative models by writing \emph{generative functions}, which are Julia functions that are augmented with random choices that play the role of latent and observed random variables.
 Unlike other probabilistic programming platforms, users implement inference algorithms in host language (Julia) code, building on high-level abstractions provided by the inference and learning API.
 GenLite also contains auxiliary domain-specific languages for inference, which augment Julia functions with additional behavior and semantics:
 First, \emph{selection functions} are used to identify subsets of random choices, and \emph{bijective functions} are used to define probability-preserving transformations between latent variable representations.
-The remainder of this section provides additional details for those features of GenLite that are relevant to user-programmable inference based on deep learning.
+The remainder of this section describes the subset of features of GenLite that are necessary for user-programmable inference based on deep learning.
 
-\subsection{Generative functions}
+\subsection{Generative function DSL}
 
 A generative function is a Julia function annotated with $\gengen{}$.
 A generative function behaves like a regular Julia function, except that it is functional with respect to its arguments (i.e. it should not mutate its arguments or any global state), and it has access to additional probabilistic language constructs.
@@ -55,52 +55,87 @@ Gradients are discussed in more detail below in the section on training generati
 Finally, generative functions can invoke other generative functions, in three ways:
 First, a generative function may make an \emph{untraced invocation}, using regular function invocation syntax (e.g. $\code{fn(args..)}$).
 Second, a generative function may invoke a generative function using the syntax $\code{@addr(fn(args...), addr)}$, which indicates that the entire trace of the function $\code{fn}$ should be placed in a sub-trace of the current function's trace, under namespace $\code{addr}$.
-Third, a generative function may use $\code{@splice(fn(args...), addr)}$, which indicates that the trace of $\code{fn}$ should be spliced into the current trace, without introducing a separate namespace.
+Third, a generative function may use $\code{@splice(fn(args...))}$, which indicates that the trace of $\code{fn}$ should be spliced into the current trace, without introducing a separate namespace.
 It is an error if any addresses in the trace of $\code{fn}$ collide with any address assigned by the caller.
 The use of $\code{@addr}$ to make random choices, combined with its use to invoke other generative functions, means that the trace of a generative function is in general a hierarchical data structure.
 
-\subsection{Selection functions}
+\subsection{Selection function DSL}
+A \emph{selection function} is a Julia function annotated with $\code{@selection}$.
+Users write selection functions to define sets of addresses within a trace, called \emph{selections}.
+These selections can be used to identify which random choices should be re-proposed by the $\code{mh}$ operator (see below) or which random choices should be targeted for MAP estimtaion by the $\code{map\_optimize}$ operator (see below).
+Selection functions can invoke the $\code{@select(addr)}$ construct, which indicates that the address $\code{addr}$ should be added to the selection, where $\code{addr}$ is a string or tuple of strings.
+Selection functions can also invoke a selection function $\code{fn}$ using either $\code{@addr(fn(args..), addr)}$ (which sets the namespace of the callee to $\code{addr}$) or $\code{@splice(fn(args..))}$.
+Finally, selection functions can read from the trace whose addresses they are selecting using $\code{@read(addr)}$.
+
+\subsection{Bijection function DSL}
+A \emph{bijection function} is a Julia function annotated with $\code{@bijection}$.
+Users write bijection functions to define invertible (deterministic) transformations between sets of traces.
+Bijection functions are applied in the context of an \emph{input trace} and an \emph{output trace}.
+The bijection function reads from the input trace using $\code{@read(addr)}$ and writes to the output trace using $\code{@write(value, addr)}$.
+Additional convenience functions include $\code{@copy(inaddr, outaddr)}$, which is an alias for a $\code{@read}$ followed by a $\code{@write}$, and $\code{@copyall(inaddr, outaddr)}$, which copies the sub-trace of the input trace rooted at $\code{inaddr}$ to the sub-trace of the output trace rooted at $\code{outaddr}$.
+Similar to generative functions and selection functions, bijection functions can invoke other bijection functions using $\code{@addr(fn(args..), addr)}$ and $\code{@splice(fn(args..))}$.
+When a bijection function reads and writes continuous random choices, the GenLite runtime computes the Jacobian of the transformation from the input trace to the output trace using reverse-mode automatic differentiation.
+The Jacobian can be used to compute the probability density of the output trace, given the probability density of the input trace.
+Bijection functions are used to rearrange addresses in traces, as well as to define change-of-variable transformations used in e.g. reversible-jump MCMC \cite{Green1994}.
 
 \subsection{High-level embedded inference programming}
 
-\subsubsection{Traces are user-space Julia values}
+\begin{figure}[t]
+\centering
+    \includegraphics[width=\textwidth]{images/gen-api.pdf}
+    \caption{GenLite inference and learning API (shaded boxes denote methods)}
+    \label{fig:genlite-api}
+\end{figure}
 
-\subsubsection{Observation traces}
+In GenLite, users implement inference and learning algorithms in Julia, using an inference and learning API provided by GenLite (Figure~\ref{fig:genlite-api}).
+The API provides a variety of methods that are parametrized by generative functions, selection functions, and/or bijection functions.
+Because inference and learning algorithms are implemented in Julia, users can make use of Julia's existing abstractions (e.g. for loops, procedural abstraction), usability features (e.g. error messages, profiler), package ecosystem, and foreign interfaces to compose inference algorithms.
 
-\subsubsection{Monte Carlo inference operators}
+\paragraph{Traces are user-space values.} Most of these methods either consume or produce traces of generative functions, which are user-space Julia values of type $\code{Trace}$.
+A $\code{Trace}$ is a hierarchical data structure resembling a trie that stores values of random choices at hierarchical addresses.
+Users encode observed values of random choices by constructing a $\code{Trace}$ containing just values for the observed random choices, called an \emph{observation trace}.
+The GenLite inference and learning API contains a number of methods for implementing inference and learning algorithms involving generative models.
+The full set of methods, which includes support for sequential Monte Carlo, reversible-jump MCMC, and user-defined auxiliary-variable algorithms, is outside the scope of this paper.
+Instead, we describe a subset of API methods that are relevant for user-programmable deep learning for inference.
 
-% imp, imp2, mh, mh2
+\paragraph{Sampling from a generative funtion with $\code{simulate}$.}
+The simplest operation we can perform with a generative function is to execute it.
+The $\code{simulate}$ method takes a generative function and its arguments (and an optional input trace not shown), and executes it, and returns the trace of the execution, the return value of the function, and the log probability of the trace, which we refer to from here onwards as the `score':
+\begin{verbatim}
+(trace::Trace, score::Float64, val) = simulate(fn::GenFunction, args::Tuple)
+\end{verbatim}
 
-% the full set of inference operators, and the semantics of these operators, are outside the scope of this paper
+\paragraph{Importance sampling using $\code{imp}$.}
+The simplest inference operation is importance sampling using the prior as the proposal, which is implemented by the method $\code{imp}$.
+The method takes a generative function that represents the generative model and its arguments, as well as an observation trace.
+The method returns a trace that includes the given observations, as well as newly sampled latent random choices, which are sampled using forward simulation (i.e. the prior).
+The method also returns the score of the resulting trace, the log importance weight, and the return value of the model function.
+\begin{verbatim}
+(trace::Trace, score::Trace, log_weight, val) = imp(
+        model::GenFunction, args::Tuple, observations::Trace)
+\end{verbatim}
+Note that this method does not run an importance-sampling algorithm per se because it does not generate multiple importance samples, normalize their weights, or resample.
+Instead, these operations are implemented in user code using regular Julia abstractions.
 
-\subsubsection{Training generative functions using $\genbackprop{}$} \label{sec:training}
+\paragraph{Importance sampling with a custom proposal using $\code{imp2}$.}
+It is also possible to perform importance sampling using user-defined proposal distributions that are specified as generative functions.
+\begin{verbatim}
+(trace::Trace, score::Float64, log_weight::Float64, val) = imp2(
+    model::GenFunction, model_args::Tuple,
+    proposal::GenFuntion, proposal_args::Tuple, 
+    observations::Trace)
+\end{verbatim}
+The addresses of the latent traced random choices in the model function must match exactly with the addresses of the traced random choices in the proposal.
+Because proposals are defined as general probabilistic programs, they can include standard distributions, deep neural networks (see Section~\ref{sec:TODO}) and algorithmic proposals as discussed in \cite{Cusumano2016}.
 
-\subsubsection{Gradient-based MAP using $\gentracegrad{}$}
+\paragraph{Resimulation Metropolis-Hastings with $\code{mh}$.}
+% TODO
 
-GenLite \cite{TODO} is a flexible probabilistic programming language designed to support user-programmable inference.
-This section provides a very brief introduction to GenLite.
-GenLite is embedded in Julia \cite{TODO}.
-In GenLite, users first express a probabilistic generative model as a \emph{generative function}, which is written in an embedded DSL that extends Julia functions with the ability to make traced random choies.
-Then, users implement Monte Carlo inference algorithms for the model in Julia code, drawing heavily on GenLite's inference programming API, which provides core data structures and inference primitives that utilize the programmatic representation of the generative model.
-User inference code is written at a higher level of abstraction than typical custom sampler implementations, which makes it more efficient to develop, maintain, and reason about.
+\paragraph{Metropolis-Hastings with a custom proposal with $\code{mh2}$.}
+% TODO
 
-In GenLite, a \emph{trace} is a Julia value (of type \texttt{Trace}) that contains a record of random choices made by some generative function.
-Generative functions, which are declared with keyword \texttt{@gen function}, extend Julia with four language constructs:
-\begin{enumerate}
-\item \texttt{@rand(<expr>, <address>)}: Sample a random value (i.e. a `random choice') from probability distribution \expr{}, where \address{} is a string or tuple of strings that specify a hierarchical name, or `address' for the random choice.
-Record the random choice in the trace at the given address.
-\item \texttt{@call(<expr>, <address>)}: Invoke a generative function given by \expr{}, and record the resulting trace for the invoked function under address \address{} in the current trace.
-\item \texttt{@read(<address>)}: If an input trace is provided, read the value in the input trace at the given \address{}.
-This feature is used by generative functions that represent proposal distributions (see below).
-\item \texttt{@param <name>::<type>}: Declare a trainable parameter of a generative function, which is static (i.e. the same value is shared by all invocations of the generative function).
-Static parameters are initialized by the user outside of the generative function body.
-\end{enumerate}
-
-Note that generative functions can contain arbitrary Julia code.
-Figure~\ref{fig:model-code-figure} shows a generative function that only exercises the \texttt{@rand} keyword.
-In addition to generative models, proposal distributions for MCMC and importance sampling can also be expressed as generative functions \cite{cusumano2018using}.
-
-The GenLite inference programming API contains a number of methods that implement building blocks for inference and learning algorithms.
+\paragraph{Training generative functions using $\genbackprop{}$.} \label{sec:training}
+% TODO
 A building block that is used for training the static parameters of generative functions is \texttt{backprop}, which has the following type signature:
 \begin{center}
     \texttt{backprop(fn::GenerativeFunction, args::Tuple, trace::Trace, [input\_trace::Trace])}
@@ -114,3 +149,5 @@ User Julia code reads and write to the gradient accumulator values and the value
 \texttt{get\_param\_grad(fn::GenerativeFunction, name::Symbol)}\\
 \texttt{zero\_param\_grad!(fn::GenerativeFunction, name::Symbol)}
 
+\paragraph{Gradient-based MAP using $\gentracegrad{}$.}
+% TODO
