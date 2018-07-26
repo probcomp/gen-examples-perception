@@ -1,14 +1,56 @@
 \section{Probabilistic programming with custom inference in GenLite}
 
+GenLite is a probabilistic programming system implemented on top of Julia \cite{?}.
+GenLite consists of a probabilistic programming language embedded in Julia, and an inference and learning API.
+Users define generative models by writing \emph{generative functions}, which are Julia functions that are augmented with random choices that play the role of latent and observed random variables.
+Unlike other probabilistic systems, users implement inference algorithms in host language (Julia) code, building on high-level inference abstractions provided by the inference and learning API.
+GenLite also contains auxiliary domain-specific languages for inference, which augment Julia functions with additional behavior and semantics:
+First, \emph{selection functions} are used to identify subsets of random choices, and \emph{bijective functions} are used to define probability-preserving transformations between latent variable representations.
+The remainder of this section provides additional details for those features of GenLite that are relevant to user-programmable inference based on deep learning.
+
 \subsection{Generative functions}
 
-\subsubsection{Random choices}
+A generative function is a Julia function annotated with $\gengen{}$.
+A generative function behaves like a regular Julia function, except that it is functional with respect to its arguments (i.e. it should not mutate its arguments or any global state), and it has access to additional probabilistic language constructs.
+Together these properties allow it to represent a probability distribution.
+This section describes the additional language constructs.
 
-\subsubsection{Reading from an input trace}
+\paragraph{Random choices and traces}
+First, generative functions can make random choices (i.e. sample random values).
+Random choices are typically drawn according to built-in or user-specified probability distributions.
+For example the expression $\code{normal(mu, sig)}$ evaluates to a random draw from a normal distribution with mean $\code{mu}$ and standard-deviation $\code{std}$.
+A random choice is typically assigned an \emph{address}, using the syntax $\code{@addr(normal(mu, std), addr)}$, where $\code{addr}$ is a dynamically computed string, or tuple of strings (which denote a hierarchical address).
+Within every possible execution of the program, the random choices must have unique addresses.
+Assuming that a generative function terminates (i.e. returns) with probability one\footnote{Verifying termination with probability one for arbitrary functions embeds the halting problem}, a generative function defines a probability distribution on \emph{traces}, which are associative collections that map the address of a random choice to its value.
+In the simple setting where the set of addresses that are sampled is constant across all executions, the GenLite function denotes a joint distribution on a collection of random variables identified with addresses.
+A formal semantics for GenLite generative functions is outside the scope of this paper.
+Informally, the probability of a certain trace is the product of the probability that each address was assigned its given value in the trace, if the trace is the result of some possible execution of the program, and zero otherwise.
+We denote the probability of a trace $t$ for generative function $p$ by $p(t)$.
+When continuous random choices are included, a generative function that terminates with probability one denotes a measure on traces.
+See \cite{CusumanoPLDI2018} and \cite{Borgstrom} for examples of trace-based semantics for probabilistic programming languages.
+Finally, note that not all random choices made by a generative function need to be assigned addresses---random choices without addresses are called \emph{untraced}.
+Untraced random choices allow GenLite functions to invoke arbitrary black box code.
 
-\subsubsection{Trainable static parameters}
+\paragraph{Reading from an input trace}
+Each generative function defines a distribution on its own trace.
+In addition, a generative function may optionally read from an \emph{input trace}, using the syntax $\code{@read(addr)}$, where $\code{addr}$ is a dynamically computed string or tuple of strings.
+As will be discussed in more detail below, input traces enable generative functions to be used to define proposal distribution in Markov chain Monte Carlo (MCMC) and importance sampling and sequential MOnte Carlo inference algorithms.
 
-\subsubsection{Calling other generative functions}
+\paragraph{Trainable static parameters}
+Generative functions can also contain \emph{trainable static parameters}.
+These parameters are declared at the beginning of the generative function definition using the syntax $\code{@param name}$ or, with an optional type declaration: $\code{@param name::type}$.
+These parameters are static in the sense that all invocation of the generative function make use of the same values for these parameters.
+The values of static parameters are set by the user in Julia code, using the API method $\code{set\_param!(gf, name, value)}$, where $\code{gf}$ is a reference to the generative function.
+Gradients with respect to static parameters are obtained by the user with $\code{get\_param\_grad(gf, name)}$.
+Gradients are discussed in more detail below in the section on training generative functions (Section~\ref{sec:training}).
+
+\paragraph{Calling other generative functions}
+Finally, generative functions can invoke other generative functions, in three ways:
+First, a generative function may make an \emph{untraced invocation}, using regular function invocation syntax (e.g. $\code{fn(args..)}$).
+Second, a generative function may invoke a generative function using the syntax $\code{@addr(fn(args...), addr)}$, which indicates that the entire trace of the function $\code{fn}$ should be placed in a sub-trace of the current function's trace, under namespace $\code{addr}$.
+Third, a generative function may use $\code{@splice(fn(args...), addr)}$, which indicates that the trace of $\code{fn}$ should be spliced into the current trace, without introducing a separate namespace.
+It is an error if any addresses in the trace of $\code{fn}$ collide with any address assigned by the caller.
+The use of $\code{@addr}$ to make random choices, combined with its use to invoke other generative functions, means that the trace of a generative function is in general a hierarchical data structure.
 
 \subsection{Selection functions}
 
@@ -24,7 +66,7 @@
 
 % the full set of inference operators, and the semantics of these operators, are outside the scope of this paper
 
-\subsubsection{Training generative functions using $\genbackprop{}$}
+\subsubsection{Training generative functions using $\genbackprop{}$} \label{sec:training}
 
 \subsubsection{Gradient-based MAP using $\gentracegrad{}$}
 

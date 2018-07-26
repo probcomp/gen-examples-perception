@@ -1,6 +1,6 @@
 \begin{abstract}
 Probabilistic programming provides concise and flexible languages for generative modeling, but achieving reliably efficient inference in probabilistic programming systems based on automated Monte Carlo algorithms remains challenging.
-Recently, user-programmable inference and offline training of proposal distributions based on deep neural networks have been proposed as two solutions to this problem.
+Two approaches to this problem have recently been proposed: user-programmable inference and offline training of proposal distributions based on deep neural networks.
 This paper proposes to combine these two approaches by permitting users to define parametrized proposal distributions as probabilistic programs based on deep neural networks.
 Users train these networks on data simulated from the generative model, which is also represented as a probabilistic program.
 The paper demonstrates the approach with models and inference programs written in GenLite, a probabilistic programming language with user-programmable inference that uses TensorFlow for scalable deep learning.
