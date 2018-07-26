@@ -1,4 +1,11 @@
-\section{Probabilistic programming with custom inference in GenLite}
+\section{Probabilistic programming with programmable inference in GenLite}
+
+\begin{figure}[t]
+\centering
+    \includegraphics[width=\textwidth]{images/genlite-schematic.pdf}
+    \caption{Architecture of GenLite including the TensorFlow extention}
+    \label{fig:genlite-schematic}
+\end{figure}
 
 GenLite is a probabilistic modeling and inference platform implemented on top of Julia \cite{?}.
 GenLite consists of a probabilistic programming language embedded in Julia, and an inference and learning API.
@@ -26,7 +33,7 @@ In the simple setting where the set of addresses that are sampled is constant ac
 A formal semantics for GenLite generative functions is outside the scope of this paper.
 Informally, the probability of a certain trace is the product of the probability that each address was assigned its given value in the trace, if the trace is the result of some possible execution of the program, and zero otherwise.
 We denote the probability of a trace $t$ for generative function $p$ by $p(t)$.
-When continuous random choices are included, a generative function that terminates with probability one denotes a measure on traces.
+When continuous random choices are included, a generative function that terminates with probability one denotes a probability measure on traces.
 See \cite{CusumanoPLDI2018} and \cite{Borgstrom} for examples of trace-based semantics for probabilistic programming languages.
 Finally, note that not all random choices made by a generative function need to be assigned addresses---random choices without addresses are called \emph{untraced}.
 The ability to make untraced random choices means that GenLite functions can invoke arbitrary black box code.
@@ -34,7 +41,7 @@ The ability to make untraced random choices means that GenLite functions can inv
 \paragraph{Reading from an input trace}
 Each generative function defines a distribution on its own trace.
 In addition, a generative function may optionally read from an \emph{input trace}, using the syntax $\code{@read(addr)}$, where $\code{addr}$ is a dynamically computed string or tuple of strings.
-As will be discussed in more detail below, input traces enable generative functions to be used to define proposal distribution in Markov chain Monte Carlo (MCMC) and importance sampling and sequential MOnte Carlo inference algorithms.
+As will be discussed in more detail below, input traces enable generative functions to be used to define proposal distribution in Markov chain Monte Carlo (MCMC) and importance sampling and sequential Monte Carlo inference algorithms.
 
 \paragraph{Trainable static parameters}
 Generative functions can also contain \emph{trainable static parameters}.
