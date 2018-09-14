@@ -1,3 +1,5 @@
+using DataFrames: DataFrame
+
 #############
 # body pose #
 #############
@@ -28,8 +30,8 @@ struct BodyPose
 end
 
 function BodyPose(choices::ChoiceTrie)
-    rotation_x = choices[:rotation]
-    rotation = scale_rot(rotation_x)
+    rot_z = choices[:rot_z]
+    rotation = scale_rot(rot_z)
     elbow_r_loc_x = choices[:elbow_r_loc_x]
     elbow_r_loc_y = choices[:elbow_r_loc_y]
     elbow_r_loc_z = choices[:elbow_r_loc_z]
@@ -76,9 +78,7 @@ function Base.:+(a::BodyPose, b::BodyPose)
 end
 
 function add_columns!(pose::BodyPose, df::DataFrame)
-    df[:rotation_x] = pose.rotation.x
-    df[:rotation_y] = pose.rotation.y
-    df[:rotation_z] = pose.rotation.z
+    df[:rot_z] = pose.rotation.z
     df[:elbow_r_loc_x] = pose.elbow_r_loc.x
     df[:elbow_r_loc_y] = pose.elbow_r_loc.y
     df[:elbow_r_loc_z] = pose.elbow_r_loc.z
@@ -112,7 +112,7 @@ function square_error(pose1::BodyPose, pose2::BodyPose)
 end
 
 ###############
-# scene model #
+# scene prior #
 ###############
 
 # rescale values from [0, 1] to another interval
@@ -129,7 +129,7 @@ scale_heel_l_loc(x, y, z) = Point3(scale(x, -0.1, 0.45), scale(y, -1, 0.5), scal
 @compiled @gen function body_pose_model()
 
     # global rotation
-    rotation_x::Float64 = @addr(uniform(0, 1), :rotation)
+    rotation_x::Float64 = @addr(uniform(0, 1), :rot_z)
     rotation::Point3 = scale_rot(rotation_x)
 
     # right elbow location
@@ -185,3 +185,46 @@ function sample(::BodyPoseSceneModel)
     trace = simulate(body_pose_model, ())
     return get_call_record(trace).retval::BodyPose
 end
+
+#############################
+# combined generative model #
+#############################
+
+include("renderer.jl")
+
+struct NoisyMatrix <: Gen.Distribution{Matrix{Float64}} end
+
+const noisy_matrix = NoisyMatrix()
+
+function Gen.logpdf(::NoisyMatrix, x::Matrix{Float64}, mu::Matrix{U}, noise::T) where {U<:Real,T<:Real}
+    var = noise * noise
+    diff = x - mu
+    vec = diff[:]
+    return -(vec' * vec)/ (2.0 * var) - 0.5 * log(2.0 * pi * var)
+end
+
+function Gen.random(::NoisyMatrix, mu::Matrix{U}, noise::T) where {U<:Real,T<:Real}
+    mat = copy(mu)
+    (w, h) = size(mu)
+    for i=1:w
+        for j=1:h
+            mat[i, j] = mu[i, j] + randn() * noise
+        end
+    end
+    return mat
+end
+
+Gen.get_static_argument_types(::NoisyMatrix) = [Matrix{Float64}, Float64]
+
+# NOTE: this happens to use the same model as the data generator for evaluation
+
+@compiled @gen function generative_model(renderer::BodyPoseRenderer)
+    pose::BodyPose = @addr(body_pose_model(), :pose)
+    image::Matrix{Float64} = render(renderer, pose)
+    blurred::Matrix{Float64} = imfilter(image, Kernel.gaussian(1))
+    observable::Matrix{Float64} = @addr(noisy_matrix(blurred, 0.1), :image)
+    return (image, blurred, observable)::Tuple{Matrix{Float64},Matrix{Float64},Matrix{Float64}}
+end
+
+const width = 128
+const height = 128
