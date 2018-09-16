@@ -1,3 +1,10 @@
+using GenTF: @tf_function, @input, @param, @output
+using GenTF: get_graph, TensorFlowFunction, init_session!
+using GenTF: get_param_names, get_param_grad, get_param_val, zero_grad
+using TensorFlow: as_default, Tensor
+import TensorFlow
+tf = TensorFlow
+
 function conv2d(x, W)
     tf.nn.conv2d(x, W, [1, 1, 1, 1], "SAME")
 end
@@ -64,7 +71,7 @@ function make_inference_network(arch::NetworkArchitecture)
 end
 
 function make_update(net::TensorFlowFunction)
-    TensorFlow.as_default(get_graph(net)) do 
+    as_default(get_graph(net)) do 
 
         # get accumulated negative gradients of log probability with respect to each parameter
         grads_and_vars = [

@@ -14,7 +14,7 @@ function infer(program::SIRPrior, image::Matrix{Float64})
     observations[:image] = image
     (trace, _) = importance_resampling(generative_model, (program.renderer,),
          StaticChoiceTrie(observations), program.num_importance_samples)
-    choices = get_internal_node(get_choices(traces[idx]), :pose)
+    choices = get_internal_node(get_choices(trace), :pose)
     return BodyPose(choices)
 end
 
@@ -25,7 +25,6 @@ struct SIRNN <: InferenceProgram
     renderer::BodyPoseRenderer
     num_importance_samples::Int
     proposal::Generator
-    proposal_args::Tuple
 end
 
 function infer(program::SIRNN, image::Matrix{Float64})
@@ -33,9 +32,9 @@ function infer(program::SIRNN, image::Matrix{Float64})
     observations[:image] = image
     (trace, _) = importance_resampling(generative_model, (program.renderer,),
          StaticChoiceTrie(observations),
-         program.proposal, program.proposal_args,
+         program.proposal, (image,),
          program.num_importance_samples)
-    choices = get_internal_node(get_choices(traces[idx]), :pose)
+    choices = get_internal_node(get_choices(trace), :pose)
     return BodyPose(choices)
 end
 

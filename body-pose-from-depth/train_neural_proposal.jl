@@ -39,9 +39,11 @@ function train_inference_network(training_data, batch_size::Int, num_iter::Int,
         backprop_params(proposal.neural_proposal_batched, batched_trace, nothing)
         tf.run(session, proposal.network_update)
         if iter % 10 == 0
-            saver = tf.train.Saver()
-            println("saving params to $params_fname...")
-            tf.train.save(saver, session, params_fname)
+            as_default(GenTF.get_graph(proposal.network)) do
+                saver = tf.train.Saver()
+                println("saving params to $params_fname...")
+                save(saver, session, params_fname)
+            end
         end
     end
 end
@@ -55,18 +57,20 @@ println("small arch...")
 arch_small = NetworkArchitecture(8, 8, 16, 128)
 proposal_small = make_neural_proposal(arch_small)
 session = init_session!(proposal_small.network)
+as_default(GenTF.get_graph(proposal_small.network)) do
+    saver = tf.train.Saver()
+    tf.train.restore(saver, session, "params_small_arch.jld")
+end
 Gen.load_generated_functions()
-train_inference_network(training_data, 20, 10, proposal_small, "params_small_arch.jld2", session)
+train_inference_network(training_data, 20, 10, proposal_small, "params_small_arch.jld", session)
 
 println("large arch...")
 arch_large = NetworkArchitecture(32, 32, 64, 1024)
 proposal_large = make_neural_proposal(arch_large)
-Gen.load_generated_functions()
 session = init_session!(proposal_large.network)
-train_inference_network(training_data, 20, 10, proposal_large, "params_large_arch.jld2", session)
-
-#saver = tf.train.Saver()
-#tf.train.restore(saver, session, "inference_network_params.jld")
-
-#println("training...")
-#train_inference_network(all_choices, 10)
+as_default(GenTF.get_graph(proposal_large.network)) do
+    saver = tf.train.Saver()
+    tf.train.restore(saver, session, "params_large_arch.jld")
+end
+Gen.load_generated_functions()
+train_inference_network(training_data, 20, 10, proposal_large, "params_large_arch.jld", session)

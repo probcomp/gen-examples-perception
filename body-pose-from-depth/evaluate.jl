@@ -1,9 +1,13 @@
 using DataFrames
 using Gen
+using GenTF
+import TensorFlow
+tf = TensorFlow
 using CSV
 
 include("model.jl")
 include("inference.jl")
+include("neural_proposal.jl")
 
 function evaluate_single(ground_truth, percept,
                   inference_programs::Dict{String,InferenceProgram},
@@ -46,28 +50,44 @@ function evaluate_multiple(scene_model, renderer,
     df = vcat(dfs...)
 end
 
-# do experiments
+
+# load the neural nets
+
+#println("small arch...")
+#arch_small = NetworkArchitecture(8, 8, 16, 128)
+#proposal_small = make_neural_proposal(arch_small)
+#session = init_session!(proposal_small.network)
+#tf.as_default(GenTF.get_graph(proposal_small.network)) do
+    #saver = tf.train.Saver()
+    #tf.train.restore(saver, session, "params_small_arch.jld")
+#end
+
+#println("large arch...")
+#arch_large = NetworkArchitecture(32, 32, 64, 1024)
+#proposal_large = make_neural_proposal(arch_large)
+#session = init_session!(proposal_large.network)
+#tf.as_default(GenTF.get_graph(proposal_large.network)) do
+    #saver = tf.train.Saver()
+    #tf.train.restore(saver, session, "params_large_arch.jld")
+#end
 
 Gen.load_generated_functions()
 renderer = BodyPoseRenderer(128, 128, "localhost", 59893)
 
 # generate table of accuracy and runtimes
-programs = Dict{String,InferenceProgram}()
-for num_importance_samples in [1, 10, 100, 1000]
-    programs["sir-prior-$num_importance_samples"] = SIRPrior(renderer, num_importance_samples)
-    progams["sir-nn-$num_importance_samples"] = SIRNN(
-        renderer, num_importance_samples) # TODO add the proposal
+inference_programs = Dict{String,InferenceProgram}()
+for num_importance_samples in [1, 10, 100, 1000, 10000]
+
+    inference_programs["sir-prior-$num_importance_samples"] = SIRPrior(
+        renderer, num_importance_samples)
+
+    #inference_programs["sir-nn-small-$num_importance_samples"] = SIRNN(
+        #renderer, num_importance_samples, proposal_small.neural_proposal)
+
+    #inference_programs["sir-nn-large-$num_importance_samples"] = SIRNN(
+        #renderer, num_importance_samples, proposal_large.neural_proposal)
 end
-df = evaluate_multiple(BodyPoseSceneModel(), renderer, programs, 10, 10)
+df = evaluate_multiple(BodyPoseSceneModel(), renderer, inference_programs, 1, 1)
 CSV.write("sir-prior.csv", df)
-
-
-
-
-
-
-
-
-
 
 
