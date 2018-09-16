@@ -43,14 +43,16 @@ trace = simulate(generative_model, (depth_renderer,))
 ground_truth = BodyPose(get_internal_node(get_choices(trace), :pose))
 (original, blurred, observed) = get_call_record(trace).retval
 
-#for n in [10, 100, 1000, 10000]
-for n in [100000]
+for n in [10, 100, 1000]#, 10000]
+#for n in [100000]
     println(n)
-    inference = SIRPrior(depth_renderer, n)
+    #inference = SIRPrior(depth_renderer, n)
+    inference = MCMC(depth_renderer, n)
     samples = BodyPose[]
-    for i=1:5
+    for i=1:3
         println("n=$n, replicate $i")
         push!(samples, infer(inference, observed))
     end
-    visualize(wireframe_renderer, ground_truth, observed, samples, "vis-sir-prior-$n.png")
+    #visualize(wireframe_renderer, ground_truth, observed, samples, "vis-sir-prior-$n.png")
+    visualize(wireframe_renderer, ground_truth, observed, samples, "vis-mcmc-$n.png")
 end
