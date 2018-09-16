@@ -5,7 +5,7 @@ using CSV
 include("model.jl")
 include("inference.jl")
 
-function quant_evaluate_single(ground_truth, percept,
+function evaluate_single(ground_truth, percept,
                   inference_programs::Dict{String,InferenceProgram},
                   replicates::Int)
     keys = String[]
@@ -31,7 +31,7 @@ function quant_evaluate_single(ground_truth, percept,
     return df
 end
 
-function quant_evaluate_multiple(scene_model, renderer,
+function evaluate_multiple(scene_model, renderer,
                   inference_programs::Dict{String,InferenceProgram},
                   num_percepts::Int, replicates::Int)
     dfs = Vector{DataFrame}(undef, num_percepts)
@@ -40,7 +40,7 @@ function quant_evaluate_multiple(scene_model, renderer,
         # NOTE: could be modified to use real-world labelled training data
         ground_truth = sample(scene_model)
         percept = render(renderer, ground_truth)
-        dfs[i] = quant_evaluate_single(ground_truth, percept, inference_programs,
+        dfs[i] = evaluate_single(ground_truth, percept, inference_programs,
                                  replicates)
     end
     df = vcat(dfs...)
@@ -54,9 +54,20 @@ renderer = BodyPoseRenderer(128, 128, "localhost", 59893)
 # generate table of accuracy and runtimes
 programs = Dict{String,InferenceProgram}()
 for num_importance_samples in [1, 10, 100, 1000]
-    #programs["sir-prior-$num_importance_samples"] = SIRPrior(renderer, num_importance_samples)
+    programs["sir-prior-$num_importance_samples"] = SIRPrior(renderer, num_importance_samples)
     progams["sir-nn-$num_importance_samples"] = SIRNN(
-        renderer, num_importance_samples)
+        renderer, num_importance_samples) # TODO add the proposal
 end
-df = quant_evaluate_multiple(BodyPoseSceneModel(), renderer, programs, 10, 10)
-CSV.write("sir-nn.csv", df)
+df = evaluate_multiple(BodyPoseSceneModel(), renderer, programs, 10, 10)
+CSV.write("sir-prior.csv", df)
+
+
+
+
+
+
+
+
+
+
+

@@ -216,8 +216,6 @@ end
 
 Gen.get_static_argument_types(::NoisyMatrix) = [Matrix{Float64}, Float64]
 
-# NOTE: this happens to use the same model as the data generator for evaluation
-
 @compiled @gen function generative_model(renderer::BodyPoseRenderer)
     pose::BodyPose = @addr(body_pose_model(), :pose)
     image::Matrix{Float64} = render(renderer, pose)
