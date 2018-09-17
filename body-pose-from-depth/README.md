@@ -16,6 +16,7 @@ Create an environment in which the search Python path will include an installati
 For example:
 ```
 pip3 install --user rpyc
+export PYTHONPATH=/home/ubuntu/.local/lib/python3.5/site-packages:$PYTHONPATH
 ```
 
 Install `xvfb-run`, so that we can run blender headless:
