@@ -30,6 +30,7 @@ Ensure you are using a self-contained version of Python (this builds PyCall as w
 julia -e 'ENV["PYTHON"] = ""; Pkg.build("GenTF")'
 ```
 
+```
 julia -e 'Pkg.add("FileIO")'
 julia -e 'Pkg.add("Images")'
 julia -e 'Pkg.add("ImageFiltering")'
