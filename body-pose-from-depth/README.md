@@ -5,7 +5,12 @@ We use this AMI because it contains a working install of CUDA 9, which is needed
 
 ## blender
 
-Download v2.79b from https://www.blender.org/download/
+Download v2.79b of [blender](https://www.blender.org/download/), e.g.:
+```
+wget https://builder.blender.org/download/blender-2.79-5c10c92b23c-linux-glibc224-x86_64.tar.bz2
+tar -xjf blender-2.79-5c10c92b23c-linux-glibc224-x86_64.tar.bz2
+export PATH=/home/ubuntu/blender-2.79-5c10c92b23c-linux-glibc224-x86_64:$PATH
+```
 
 Create an environment in which the search Python path will include an installation of the `rpyc` Python module, using `PYTHONPATH` or something else.
 For example:
@@ -16,6 +21,15 @@ pip3 install --user rpyc
 Install `xvfb-run`, so that we can run blender headless:
 ```
 sudo apt install xvfb
+```
+
+## Julia
+
+Get julia-0.7.0:
+```
+wget https://julialang-s3.julialang.org/bin/linux/x64/0.7/julia-0.7.0-linux-x86_64.tar.gz
+tar -xzf https://julialang-s3.julialang.org/bin/linux/x64/0.7/julia-0.7.0-linux-x86_64.tar.gz
+export PATH=/home/ubuntu/julia-0.7.0/bin:$PATH
 ```
 
 ## Julia packages
