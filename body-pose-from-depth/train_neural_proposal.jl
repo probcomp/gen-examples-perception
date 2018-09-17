@@ -11,7 +11,7 @@ include("model.jl")
 include("neural_proposal.jl")
 
 
-const num_train = 100 # 100,000
+const num_train = 100000
 
 function generate_training_data(renderer)
     traces = Vector{Any}(num_train)
@@ -59,22 +59,22 @@ println("small arch...")
 arch_small = NetworkArchitecture(8, 8, 16, 128)
 proposal_small = make_neural_proposal(arch_small)
 session = init_session!(proposal_small.network)
-as_default(GenTF.get_graph(proposal_small.network)) do
-    saver = tf.train.Saver()
-    tf.train.restore(saver, session, "params_small_arch.jld")
-end
+#as_default(GenTF.get_graph(proposal_small.network)) do
+    #saver = tf.train.Saver()
+    #tf.train.restore(saver, session, "params_small_arch.jld")
+#end
 Gen.load_generated_functions()
-train_inference_network(training_data, 20, 10, proposal_small, "params_small_arch.jld", session)
+train_inference_network(training_data, 20, 30, proposal_small, "params_small_arch_8_8_16_128.jld", session)
 
 println("large arch...")
 arch_large = NetworkArchitecture(32, 32, 64, 1024)
 proposal_large = make_neural_proposal(arch_large)
 session = init_session!(proposal_large.network)
-as_default(GenTF.get_graph(proposal_large.network)) do
-    saver = tf.train.Saver()
-    tf.train.restore(saver, session, "params_large_arch.jld")
-end
+#as_default(GenTF.get_graph(proposal_large.network)) do
+    #saver = tf.train.Saver()
+    #tf.train.restore(saver, session, "params_large_arch.jld")
+#end
 Gen.load_generated_functions()
-train_inference_network(training_data, 20, 10, proposal_large, "params_large_arch.jld", session)
+train_inference_network(training_data, 20, 30, proposal_large, "params_large_arch_32_32_64_128.jld", session)
 
 close(renderer)

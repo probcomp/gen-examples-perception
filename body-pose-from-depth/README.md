@@ -44,6 +44,9 @@ julia -e 'Pkg.add("CSV")'
 julia -e 'Pkg.add("PyCall")'
 julia -e 'Pkg.add("ImageMagick")'
 julia -e 'Pkg.add("JLD2")'
+julia -e 'Pkg.add("ReverseDiff")'
+julia -e 'Pkg.add("TensorFlow")'
+julia -e 'Pkg.add("MacroTools")'
 ```
 
 Also, need to install the Python module `rpyc` for use by the Python used by PyCall.

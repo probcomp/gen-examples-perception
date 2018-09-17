@@ -30,7 +30,7 @@ end
 
 function Base.close(client::BlenderClient)
     println("killing proc: $(client.proc)")
-    kill(client.proc, Base.SIGTERM)
+    kill(client.proc, Base.SIGKILL)
 end
 
 function setup_for_depth!(client::BlenderClient)
