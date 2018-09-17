@@ -38,6 +38,7 @@ julia -e 'Pkg.add("DataFrames")'
 julia -e 'Pkg.add("CSV")'
 julia -e 'Pkg.add("PyCall")'
 julia -e 'Pkg.add("ImageMagick")'
+julia -e 'Pkg.add("JLD2")'
 ```
 
 Also, need to install the Python module `rpyc` for use by the Python used by PyCall.
