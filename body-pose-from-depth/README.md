@@ -24,6 +24,10 @@ sudo apt install xvfb
 ```
 
 ## Julia
+Install Git if not already installed:
+```
+sudo apt install git
+```
 
 Get julia-0.7.0:
 ```
@@ -35,20 +39,20 @@ export PATH=/home/ubuntu/julia-0.7.0/bin:$PATH
 ## Julia packages
 
 To install necessary packages in the default Julia environment:
-
-Note that `/home/marcoct/dev/` directory needs to be changed:
 ```
 git clone git@github.com:probcomp/Gen.git
-julia -e 'using Pkg; Pkg.develop(PackageSpec(path="/home/marcoct/dev/Gen"))'
+julia -e 'using Pkg; Pkg.develop(PackageSpec(path="/home/ubuntu/Gen"))'
 git clone git@github.com:probcomp/GenTF.git
-julia -e 'using Pkg; Pkg.develop(PackageSpec(path="/home/marcoct/dev/GenTF"))'
+julia -e 'using Pkg; ENV["PYTHON"] = ""; ENV["TF_USE_GPU"] = 1; Pkg.develop(PackageSpec(path="/home/ubuntu/GenTF"))'
 ```
 
-Ensure you are using a self-contained version of Python (this builds PyCall as well as TensorFlow):
+Ensure you are using a self-contained version of Python (this builds PyCall as well as TensorFlow).
+Compile to use GPU support for TensorFlow:
 ```
-julia -e 'ENV["PYTHON"] = ""; Pkg.build("GenTF")'
+julia -e 'ENV["PYTHON"] = ""; ENV["TF_USE_GPU"] = 1; Pkg.build("GenTF")'
 ```
 
+Install other packages which are in the public registry:
 ```
 julia -e 'Pkg.add("FileIO")'
 julia -e 'Pkg.add("Images")'
@@ -63,13 +67,9 @@ julia -e 'Pkg.add("TensorFlow")'
 julia -e 'Pkg.add("MacroTools")'
 ```
 
-Also, need to install the Python module `rpyc` for use by the Python used by PyCall.
-To do this manually in Julia:
-```julia
-import PyCall
-python_path = PyCall.python
-dir = join(split(python_path, "/")[1:end-1], "/")
-run(`$dir/pip install rpyc`)
+Also, need to install the Python module `rpyc` for use by the Python used by PyCall:
+```
+julia -e 'import PyCall; dir=join(split(PyCall.python, "/")[1:end-1], "/"); run(`$dir/pip install rpyc`)'
 ```
 
 TODO: We should use a [Project](https://docs.julialang.org/en/v1/stdlib/Pkg/) to manage these dependencies.
@@ -83,3 +83,19 @@ julia visualize.jl
 ```
 
 It should produce some `.png` files showing ground truth, observed image, and approximate posterior samples.
+
+## Training deep net proposals
+
+Can run them in parallel:
+```
+julia train_neural_proposal_small.jl &
+julia train_neural_proposal_large.jl &
+```
+
+## Blender process and ports
+
+The Julia scripts spawn blender processes and connect to them over sockets.
+If running multiple scripts in at once you need to make sure that no port number is used more than once.
+
+The Julia scripts don't currently reliably kill them when they return.
+Therefore, you will need to clean them up (e.g. with kill or pkill).
