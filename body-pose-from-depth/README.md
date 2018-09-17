@@ -77,6 +77,8 @@ But, that is harder when Gen and GenTF are not in a registry and are not public 
 
 ## Testing
 
+Clone this repository onto the machine (use ssh agent forwarding).
+
 Run the `visualize.jl` script to test:
 ```
 julia visualize.jl
