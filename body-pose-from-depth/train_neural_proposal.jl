@@ -49,7 +49,9 @@ function train_inference_network(training_data, batch_size::Int, num_iter::Int,
 end
 
 println("generating training data...")
-const renderer = BodyPoseRenderer(width, height, "localhost", 59893)
+blender = "blender"
+model = "HumanKTH.decimated.blend"
+const renderer = BodyPoseDepthRenderer(width, height, blender, model, 59897)
 Gen.load_generated_functions()
 const training_data = generate_training_data(renderer)
 
@@ -74,3 +76,5 @@ as_default(GenTF.get_graph(proposal_large.network)) do
 end
 Gen.load_generated_functions()
 train_inference_network(training_data, 20, 10, proposal_large, "params_large_arch.jld", session)
+
+close(renderer)

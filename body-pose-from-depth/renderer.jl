@@ -1,21 +1,20 @@
 using FileIO
 using ImageFiltering: imfilter, Kernel
 
-include("blender_depth_client.jl")
+include("blender_client.jl")
 
 ##################
 # depth renderer #
 ##################
 
-struct BodyPoseRenderer
+struct BodyPoseDepthRenderer
     width::Int
     height::Int
     blender_client::BlenderClient
 end
 
-function BodyPoseRenderer(width, height, hostname, port)
-    client = BlenderClient()
-    connect!(client, hostname, port)
+function BodyPoseDepthRenderer(width, height, blender::String, model::String, port)
+    client = BlenderClient(blender, model, port)
     setup_for_depth!(client)
     set_resolution!(client, width, height)
     set_object_location!(client, "Camera", Point3(0, -8.5, 5))
@@ -27,10 +26,12 @@ function BodyPoseRenderer(width, height, hostname, port)
     add_plane!(client, "nearplane", Point3(-2,-4,0), Point3(pi/3.,0,0), Point3(0.1,0.1,0.1))
     setup_for_depth!(client)
     set_resolution!(client, width, height)
-    return BodyPoseRenderer(width, height, client)
+    return BodyPoseDepthRenderer(width, height, client)
 end
 
-function render(renderer::BodyPoseRenderer, pose::BodyPose)
+Base.close(renderer::BodyPoseDepthRenderer) = close(renderer.blender_client)
+
+function render(renderer::BodyPoseDepthRenderer, pose::BodyPose)
     tmp = tempname() * ".png"
     set_body_pose!(renderer.blender_client, pose)
     render(renderer.blender_client, tmp)
@@ -49,9 +50,8 @@ struct BodyPoseWireframeRenderer
     blender_client::BlenderClient
 end
 
-function BodyPoseWireframeRenderer(width, height, hostname, port)
-    client = BlenderClient()
-    connect!(client, hostname, port)
+function BodyPoseWireframeRenderer(width, height, blender::String, model::String, port)
+    client = BlenderClient(blender, model, port)
     setup_for_wireframe!(client)
     set_resolution!(client, width, height)
     set_object_location!(client, "Camera", Point3(0, -8.5, 5))
@@ -65,6 +65,8 @@ function BodyPoseWireframeRenderer(width, height, hostname, port)
     set_resolution!(client, width, height)
     return BodyPoseWireframeRenderer(width, height, client)
 end
+
+Base.close(renderer::BodyPoseWireframeRenderer) = close(renderer.blender_client)
 
 function render(renderer::BodyPoseWireframeRenderer, pose::BodyPose)
     tmp = tempname() * ".png"

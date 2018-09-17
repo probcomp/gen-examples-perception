@@ -36,14 +36,16 @@ end
 
 Gen.load_generated_functions()
 
-depth_renderer = BodyPoseRenderer(width, height, "localhost", 59894)
-wireframe_renderer = BodyPoseWireframeRenderer(width, height, "localhost", 59895)
+blender = "blender"
+model = "HumanKTH.decimated.blend"
+depth_renderer = BodyPoseDepthRenderer(width, height, blender, model, 59897)
+wireframe_renderer = BodyPoseWireframeRenderer(width, height, blender, model, 59898)
 
 trace = simulate(generative_model, (depth_renderer,))
 ground_truth = BodyPose(get_internal_node(get_choices(trace), :pose))
 (original, blurred, observed) = get_call_record(trace).retval
 
-for n in [10, 100, 1000]#, 10000]
+for n in [10]#, 100, 1000]#, 10000]
 #for n in [100000]
     println(n)
     #inference = SIRPrior(depth_renderer, n)
@@ -56,3 +58,6 @@ for n in [10, 100, 1000]#, 10000]
     #visualize(wireframe_renderer, ground_truth, observed, samples, "vis-sir-prior-$n.png")
     visualize(wireframe_renderer, ground_truth, observed, samples, "vis-mcmc-$n.png")
 end
+
+close(depth_renderer)
+close(wireframe_renderer)

@@ -1,6 +1,7 @@
 import rpyc
 import bpy
 import time
+import sys
 
 class BlockingServer(rpyc.utils.server.Server):
 
@@ -119,6 +120,10 @@ class BlenderService(rpyc.Service):
         self.exposed_set_bone_location("rig", "heel_R", pose["heel_r_loc"])
         self.exposed_set_bone_location("rig", "heel_L", pose["heel_l_loc"])
 
+
 # note: the model should already have been loaded
-t = BlockingServer(BlenderService, port=59893)
+argv = sys.argv
+argv = argv[argv.index("--") + 1:]
+port = int(argv[0])
+t = BlockingServer(BlenderService, port=port)
 t.start()

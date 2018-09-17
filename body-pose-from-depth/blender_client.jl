@@ -14,14 +14,23 @@ const HEEL_L = "heel_L"
 ##################
 
 mutable struct BlenderClient
+    proc::Base.Process
     conn::PyObject
     root::PyObject
-    BlenderClient() = new()
 end
 
-function connect!(client::BlenderClient, host, port)
-    client.conn = rpyc.connect(host, port)
-    client.root = client.conn[:root]
+function BlenderClient(blender_path::String, model_path::String, port::Int)
+    proc = run(pipeline(`$blender_path -b $model_path -P blender_depth_server.py -- $port`, stdout=stdout, stderr=stderr), wait=false)
+    sleep(5) # TODO be smarter (read stdout from the process)
+    host = "localhost"
+    conn = rpyc.connect(host, port)
+    root = conn[:root]
+    BlenderClient(proc, conn, root)
+end
+
+function Base.close(client::BlenderClient)
+    println("killing proc: $(client.proc)")
+    kill(client.proc, Base.SIGTERM)
 end
 
 function setup_for_depth!(client::BlenderClient)

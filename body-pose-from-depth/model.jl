@@ -217,7 +217,7 @@ end
 
 Gen.get_static_argument_types(::NoisyMatrix) = [Matrix{Float64}, Float64]
 
-@compiled @gen function generative_model(renderer::BodyPoseRenderer)
+@compiled @gen function generative_model(renderer::BodyPoseDepthRenderer)
     pose::BodyPose = @addr(body_pose_model(), :pose)
     image::Matrix{Float64} = render(renderer, pose)
     blurred::Matrix{Float64} = imfilter(image, Kernel.gaussian(1))

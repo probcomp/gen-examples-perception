@@ -5,7 +5,7 @@ abstract type InferenceProgram end
 # SIR from the prior
 
 struct SIRPrior <: InferenceProgram
-    renderer::BodyPoseRenderer
+    renderer::BodyPoseDepthRenderer
     num_importance_samples::Int
 end
 
@@ -22,7 +22,7 @@ end
 # SIR using neural network proposal
 
 struct SIRNN <: InferenceProgram
-    renderer::BodyPoseRenderer
+    renderer::BodyPoseDepthRenderer
     num_importance_samples::Int
     proposal::Generator
 end
@@ -41,7 +41,7 @@ end
 # MCMC
 
 struct MCMC <: InferenceProgram
-    renderer::BodyPoseRenderer
+    renderer::BodyPoseDepthRenderer
     num_steps::Int
 end
 
