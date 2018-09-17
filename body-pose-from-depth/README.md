@@ -1,3 +1,8 @@
+## AWS GPU Instance
+
+Tested with a p2.xlarge EC2 instance, starting with the Deep Learning AMI (Ubuntu) Version 14.0 (ami-0466e26ccc0e752c1).
+We use this AMI because it contains a working install of CUDA 9, which is needed by TensorFlow.jl
+
 ## blender
 
 Download v2.79b from https://www.blender.org/download/
