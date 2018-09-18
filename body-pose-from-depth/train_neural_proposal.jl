@@ -10,10 +10,7 @@ tf = TensorFlow
 include("model.jl")
 include("neural_proposal.jl")
 
-
-const num_train = 100000
-
-function generate_training_data(renderer)
+function generate_training_data(renderer, num_train)
     traces = Vector{Any}(num_train)
     for i=1:num_train
         traces[i] = get_choices(simulate(generative_model, (renderer,)))
@@ -26,6 +23,7 @@ end
 
 function train_inference_network(training_data, batch_size::Int, num_iter::Int,
                                  proposal::NeuralProposal, params_fname, session::Session)
+    num_train = length(training_data)
     for iter=1:num_iter
         minibatch = Random.randperm(num_train)[1:batch_size]
         choices_arr = training_data[minibatch]

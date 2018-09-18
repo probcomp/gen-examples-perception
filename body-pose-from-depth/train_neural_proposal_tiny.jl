@@ -3,14 +3,14 @@ include("train_neural_proposal.jl")
 println("generating training data...")
 blender = "blender"
 model = "HumanKTH.decimated.blend"
-const renderer = BodyPoseDepthRenderer(width, height, blender, model, 59899)
+const renderer = BodyPoseDepthRenderer(width, height, blender, model, 59897)
 Gen.load_generated_functions()
 const training_data = generate_training_data(renderer, 100000)
 
-arch = NetworkArchitecture(32, 32, 64, 1024)
+arch = NetworkArchitecture(4, 4, 8, 32)
 proposal = make_neural_proposal(arch)
 session = init_session!(proposal.network)
-params_fname = "params_arch_32_32_64_128.jld"
+params_fname = "params_arch_4_4_8_32.jld"
 #as_default(GenTF.get_graph(proposal.network)) do
     #saver = tf.train.Saver()
     #tf.train.restore(saver, session, params_fname)
