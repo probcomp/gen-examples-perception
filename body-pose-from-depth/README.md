@@ -89,16 +89,17 @@ It should produce some `.png` files showing ground truth, observed image, and ap
 
 ## Training deep net proposals
 
-Can run them in parallel:
+Can run them in parallel, but need to make sure they are using separate GPUs (because [multiple TensorFlow processes cannot reliably share GPUs](https://github.com/tensorflow/tensorflow/issues/4196) verified by my own experience).
 ```
-julia train_neural_proposal_small.jl &
-julia train_neural_proposal_large.jl &
+CUDA_VISIBLE_DEVICES=0 julia train_neural_proposal_tiny.jl &
+CUDA_VISIBLE_DEVICES=1 julia train_neural_proposal_small.jl &
+CUDA_VISIBLE_DEVICES=2 julia train_neural_proposal_large.jl &
 ```
 
 ## Blender process and ports
 
 The Julia scripts spawn blender processes and connect to them over sockets.
-If running multiple scripts in at once you need to make sure that no port number is used more than once.
+If running multiple scripts at once you need to make sure that no port number is used more than once.
 
 The Julia scripts don't currently reliably kill them when they return.
 Therefore, you will need to clean them up (e.g. with kill or pkill).
