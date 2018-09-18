@@ -20,7 +20,7 @@ mutable struct BlenderClient
 end
 
 function BlenderClient(blender_path::String, model_path::String, port::Int)
-    proc = run(pipeline(`xvfb-run --auto-servernum -server-num=1 $blender_path -b $model_path -P blender_depth_server.py -- $port`, stdout=stdout, stderr=stderr), wait=false)
+    proc = run(pipeline(`xvfb-run --auto-servernum -server-num=1 $blender_path -b $model_path -P blender_depth_server.py -- $port`), wait=false)
     sleep(5) # TODO be smarter (read stdout from the process)
     host = "localhost"
     conn = rpyc.connect(host, port)
