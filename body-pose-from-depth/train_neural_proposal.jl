@@ -36,7 +36,22 @@ function train_inference_network(num_batch::Int, batch_size::Int, num_minibatch:
             batched_trace = assess(proposal.neural_proposal_batched, (images,), constraints)
             score = get_call_record(batched_trace).score / minibatch_size
             println("batch $batch of $num_batch, minibatch $iter of $num_minibatch, avg score: $score")
+            # print value of the parameter
+            W_conv1 = tf.run(session, get_param_val(proposal.network, :W_conv1))
+            println("size(W_conv1): $(size(W_conv1)), W_conv1[1:10]: $(W_conv1[1:10])")
+
+            # TODO check the value of the gradients is zero
+            W_conv1_grad = tf.run(session, get_param_grad(proposal.network, :W_conv1))
+            println("size(W_conv1_grad): $(size(W_conv1_grad)), W_conv1_grad[1:10]: $(W_conv1_grad[1:10])")
+            println("backprop...")
             backprop_params(proposal.neural_proposal_batched, batched_trace, nothing)
+
+            # TODO check the value of the gradients
+            W_conv1_grad = tf.run(session, get_param_grad(proposal.network, :W_conv1))
+            println("size(W_conv1_grad): $(size(W_conv1_grad)), W_conv1_grad[1:10]: $(W_conv1_grad[1:10])")
+
+            # do the update
+            println("update...")
             tf.run(session, proposal.network_update)
         end
         as_default(GenTF.get_graph(proposal.network)) do

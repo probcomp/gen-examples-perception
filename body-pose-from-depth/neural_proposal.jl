@@ -76,13 +76,12 @@ function make_update(net::TensorFlowFunction)
         # get accumulated negative gradients of log probability with respect to each parameter
         grads_and_vars = [
             (tf.negative(get_param_grad(net, n)), get_param_val(net, n)) for n in get_param_names(net)]
-    
-        # use ADAM 
+        # do ADAM step and then reset the gradient accumulators
         optimizer = tf.train.AdamOptimizer(1e-4)
-    
-        tf.group(
-            tf.train.apply_gradients(optimizer, grads_and_vars),
-            [zero_grad(net, n) for n in get_param_names(net)]...)
+        step = tf.train.apply_gradients(optimizer, grads_and_vars)
+        tf.with_op_control([step]) do
+            tf.group([zero_grad(net, n) for n in get_param_names(net)]...)
+        end
     end
 end
 
