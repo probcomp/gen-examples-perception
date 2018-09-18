@@ -1,3 +1,5 @@
+# Environment Setup
+
 ## AWS GPU Instance
 
 Tested with a p2.xlarge and p2.8xlarge EC2 instances, starting from the Deep Learning AMI (Ubuntu) Version 14.0 (ami-0466e26ccc0e752c1).
@@ -75,6 +77,8 @@ julia -e 'import PyCall; dir=join(split(PyCall.python, "/")[1:end-1], "/"); run(
 
 TODO: We should use a [Project](https://docs.julialang.org/en/v1/stdlib/Pkg/) to manage these dependencies.
 But, that is harder when Gen and GenTF are not in a registry and are not public repositories.
+
+# Running experiments
 
 ## Testing
 
