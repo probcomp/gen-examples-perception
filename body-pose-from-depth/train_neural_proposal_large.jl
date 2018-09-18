@@ -1,11 +1,8 @@
 include("train_neural_proposal.jl")
 
-println("generating training data...")
 blender = "blender"
 model = "HumanKTH.decimated.blend"
 const renderer = BodyPoseDepthRenderer(width, height, blender, model, 59899)
-Gen.load_generated_functions()
-const training_data = generate_training_data(renderer, 100000)
 
 arch = NetworkArchitecture(32, 32, 64, 1024)
 proposal = make_neural_proposal(arch)
@@ -16,7 +13,12 @@ params_fname = "params_arch_32_32_64_128.jld"
     #tf.train.restore(saver, session, params_fname)
 #end
 Gen.load_generated_functions()
-train_inference_network(training_data, 100, 1000000, proposal, params_fname, session)
+
+num_batch = 100000 # forever
+batch_size = 10000
+num_minibatch = 500
+minibatch_size = 100
+train_inference_network(num_batch, batch_size, num_minibatch, minibatch_size, proposal, params_fname, session, renderer)
 
 close(renderer)
 
