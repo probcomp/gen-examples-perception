@@ -36,7 +36,7 @@ function train_inference_network(training_data, batch_size::Int, num_iter::Int,
         println("iter $iter, avg score: $score")
         backprop_params(proposal.neural_proposal_batched, batched_trace, nothing)
         tf.run(session, proposal.network_update)
-        if iter % 10 == 0
+        if iter % 1000 == 0
             as_default(GenTF.get_graph(proposal.network)) do
                 saver = tf.train.Saver()
                 println("saving params to $params_fname...")
