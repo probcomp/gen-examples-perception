@@ -1,4 +1,5 @@
-include("train_neural_proposal.jl")
+include("model.jl")
+include("neural_proposal.jl")
 
 blender = "blender"
 model = "HumanKTH.decimated.blend"
@@ -18,6 +19,6 @@ num_batch = 100000 # forever
 batch_size = 10000
 num_minibatch = 500
 minibatch_size = 100
-train_inference_network(num_batch, batch_size, num_minibatch, minibatch_size, proposal, params_fname, session, renderer)
+train_inference_network(num_batch, batch_size, num_minibatch, minibatch_size, proposal, params_fname, session, renderer; verbose=true)
 
 close(renderer)

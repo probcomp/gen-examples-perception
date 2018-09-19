@@ -1,9 +1,16 @@
+import GenTF
+import TensorFlow
+tf = TensorFlow
+import ReverseDiff
+using Printf
+import Random
+
+using FileIO
 using GenTF: @tf_function, @input, @param, @output
 using GenTF: get_graph, TensorFlowFunction, init_session!
 using GenTF: get_param_names, get_param_grad, get_param_val, zero_grad
 using TensorFlow: as_default, Tensor, Session, as_default
-import TensorFlow
-tf = TensorFlow
+
 
 function conv2d(x, W)
     tf.nn.conv2d(x, W, [1, 1, 1, 1], "SAME")
@@ -202,7 +209,7 @@ function train_inference_network(num_batch::Int, batch_size::Int,
 
     function minibatch_callback(batch::Int, minibatch::Int, avg_score::Float64, verbose::Bool)
         if verbose
-            println("batch $batch of $num_batch, minibatch $minibatch of $num_minibatch, avg score: $score")
+            println("batch $batch of $num_batch, minibatch $minibatch of $num_minibatch, avg score: $avg_score")
         end
         tf.run(session, proposal.network_update)
     end
