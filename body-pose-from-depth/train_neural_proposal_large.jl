@@ -15,7 +15,7 @@ params_fname = "params_arch_32_32_64_128.jld"
 Gen.load_generated_functions()
 
 num_batch = 100000 # forever
-batch_size = 10000
+batch_size = 100
 num_minibatch = 500
 minibatch_size = 100
 train_inference_network(num_batch, batch_size, num_minibatch, minibatch_size, proposal, params_fname, session, renderer)

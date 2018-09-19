@@ -127,7 +127,8 @@ scale_hip_loc(z) = Point3(0., 0., scale(z, -0.35, 0))
 scale_heel_r_loc(x, y, z) = Point3(scale(x, -0.45, 0.1), scale(y, -1, 0.5), scale(z, -0.2, 0.2))
 scale_heel_l_loc(x, y, z) = Point3(scale(x, -0.1, 0.45), scale(y, -1, 0.5), scale(z, -0.2, 0.2))
 
-@compiled @gen function body_pose_model()
+#@compiled @gen function body_pose_model()
+@gen function body_pose_model()
 
     # global rotation
     rotation_x::Float64 = @addr(uniform(0, 1), :rot_z)
@@ -217,7 +218,8 @@ end
 
 Gen.get_static_argument_types(::NoisyMatrix) = [Matrix{Float64}, Float64]
 
-@compiled @gen function generative_model(renderer::BodyPoseDepthRenderer)
+#@compiled @gen function generative_model(renderer::BodyPoseDepthRenderer)
+@gen function generative_model(renderer::BodyPoseDepthRenderer)
     pose::BodyPose = @addr(body_pose_model(), :pose)
     image::Matrix{Float64} = render(renderer, pose)
     blurred::Matrix{Float64} = imfilter(image, Kernel.gaussian(1))

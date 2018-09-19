@@ -1,7 +1,7 @@
 using GenTF: @tf_function, @input, @param, @output
 using GenTF: get_graph, TensorFlowFunction, init_session!
 using GenTF: get_param_names, get_param_grad, get_param_val, zero_grad
-using TensorFlow: as_default, Tensor
+using TensorFlow: as_default, Tensor, Session, as_default
 import TensorFlow
 tf = TensorFlow
 
@@ -71,7 +71,7 @@ function make_inference_network(arch::NetworkArchitecture)
 end
 
 function make_update(net::TensorFlowFunction)
-    as_default(get_graph(net)) do 
+    as_default(GenTF.get_graph(net)) do 
 
         # get accumulated negative gradients of log probability with respect to each parameter
         grads_and_vars = [
@@ -85,7 +85,8 @@ function make_update(net::TensorFlowFunction)
     end
 end
 
-@compiled @gen function neural_proposal_predict(@ad(outputs::Vector{Float64}))
+#@compiled @gen function neural_proposal_predict(@ad(outputs::Vector{Float64}))
+@gen function neural_proposal_predict(@ad(outputs::Vector{Float64})) # TODO checkme?
 
     # TODO capture dependencies within e.g. right elbow using multivariate e.g.
     # gaussian proposals (use Cholesky decomposition, parametrize by L) see
@@ -151,20 +152,22 @@ function make_neural_proposal(arch::NetworkArchitecture)
         end
     end)
 
-    neural_proposal_batched = gensym("neural_proposal")
+    neural_proposal_batched = gensym("neural_proposal_batched")
     eval(quote
         @gen function $neural_proposal_batched(images::Vector{Matrix{Float64}})
 
             # get images from input trace
             batch_size = length(images)
+            println("batch size: $batch_size")
             images_flat = zeros(Float32, batch_size, width * height)
-            batch_size = length(images)
             for i=1:batch_size
                 images_flat[i,:] = images[i][:]
             end
+            println("size(images_flat): $(size(images_flat))")
         
             # run inference network in batch
             outputs = @addr($(QuoteNode(network))(images_flat), :network)
+            println("size(outputs): $(size(outputs))")
             
             # make prediction for each image given inference network outputs
             for i=1:batch_size
@@ -175,4 +178,51 @@ function make_neural_proposal(arch::NetworkArchitecture)
     
     NeuralProposal(arch, network, update,
         eval(neural_proposal), eval(neural_proposal_batched))
+end
+
+
+function train_inference_network(num_batch::Int, batch_size::Int,
+                                 num_minibatch::Int, minibatch_size::Int, 
+                                 proposal::NeuralProposal, params_fname,
+                                 session::Session, renderer; verbose=false)
+
+    function input_extractor(teacher_choices_arr::Vector{Any})
+        @assert length(teacher_choices_arr) == minibatch_size
+        images = Matrix{Float64}[choices[:image] for choices in teacher_choices_arr]
+        (images,)
+    end
+
+    function constraint_extractor(teacher_choices_arr::Vector{Any})
+        @assert length(teacher_choices_arr) == minibatch_size
+        poses = vectorize_internal([get_internal_node(c, :pose) for c in teacher_choices_arr])
+        constraints = DynamicChoiceTrie()
+        set_internal_node!(constraints, :poses, poses)
+        constraints
+    end
+
+    function minibatch_callback(batch::Int, minibatch::Int, avg_score::Float64, verbose::Bool)
+        if verbose
+            println("batch $batch of $num_batch, minibatch $minibatch of $num_minibatch, avg score: $score")
+        end
+        tf.run(session, proposal.network_update)
+    end
+    
+    function batch_callback(batch::Int, verbose::Bool)
+        as_default(GenTF.get_graph(proposal.network)) do
+            saver = tf.train.Saver()
+            println("finished batch $batch, saving params to $params_fname...")
+            save(saver, session, params_fname)
+        end
+    end
+
+    conf = SGDTrainConf(
+                num_batch,
+                batch_size,
+                num_minibatch,
+                minibatch_size,
+                input_extractor,
+                constraint_extractor,
+                minibatch_callback,
+                batch_callback)
+    sgd_train_batch(generative_model, (renderer,), proposal.neural_proposal_batched, conf, verbose)
 end
