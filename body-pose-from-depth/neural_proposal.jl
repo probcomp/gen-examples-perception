@@ -190,7 +190,7 @@ end
 
 function train_inference_network(num_batch::Int, batch_size::Int,
                                  num_minibatch::Int, minibatch_size::Int, 
-                                 proposal::NeuralProposal, params_fname,
+                                 proposal::NeuralProposal, params_fname_trunk,
                                  session::Session, renderer; verbose=false)
 
     function input_extractor(teacher_choices_arr::Vector{Any})
@@ -217,6 +217,7 @@ function train_inference_network(num_batch::Int, batch_size::Int,
     function batch_callback(batch::Int, verbose::Bool)
         as_default(GenTF.get_graph(proposal.network)) do
             saver = tf.train.Saver()
+            params_fname = "$(params_fname_trunk)-$batch.jld"
             println("finished batch $batch, saving params to $params_fname...")
             save(saver, session, params_fname)
         end
