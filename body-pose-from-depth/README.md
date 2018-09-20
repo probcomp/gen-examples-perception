@@ -95,9 +95,9 @@ It should produce some `.png` files showing ground truth, observed image, and ap
 
 Can run them in parallel, but need to make sure they are using separate GPUs (because [multiple TensorFlow processes cannot reliably share GPUs](https://github.com/tensorflow/tensorflow/issues/4196) verified by my own experience).
 ```
-CUDA_VISIBLE_DEVICES=0 julia train_neural_proposal_tiny.jl &
-CUDA_VISIBLE_DEVICES=1 julia train_neural_proposal_small.jl &
-CUDA_VISIBLE_DEVICES=2 julia train_neural_proposal_large.jl &
+CUDA_VISIBLE_DEVICES=0 julia train_neural_proposal_tiny.jl <port>&
+CUDA_VISIBLE_DEVICES=1 julia train_neural_proposal_small.jl <port>&
+CUDA_VISIBLE_DEVICES=2 julia train_neural_proposal_large.jl <port>&
 ```
 
 ## Blender process and ports
