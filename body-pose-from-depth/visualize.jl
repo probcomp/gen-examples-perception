@@ -3,6 +3,7 @@ using Images: ImageCore
 
 include("model.jl")
 include("inference.jl")
+include("neural_proposal.jl")
 
 function visualize(renderer::BodyPoseWireframeRenderer,
                    ground_truth::BodyPose, image::Matrix{Float64},
@@ -34,29 +35,51 @@ function visualize(renderer::BodyPoseWireframeRenderer,
     FileIO.save(fname, map(ImageCore.clamp01, combined))
 end
 
-Gen.load_generated_functions()
 
 blender = "blender"
 model = "HumanKTH.decimated.blend"
 depth_renderer = BodyPoseDepthRenderer(width, height, blender, model, 59897)
 wireframe_renderer = BodyPoseWireframeRenderer(width, height, blender, model, 59898)
 
+# load large NN
+arch = NetworkArchitecture(32, 32, 64, 1024)
+proposal = make_neural_proposal(arch)
+session = init_session!(proposal.network)
+params_fname = "params_arch_32_32_64_128-59902-36.jld"
+as_default(GenTF.get_graph(proposal.network)) do
+    saver = tf.train.Saver()
+    tf.train.restore(saver, session, params_fname)
+end
+
+Gen.load_generated_functions()
+
+# generate test image
+import Random
+Random.seed!(1)
 trace = simulate(generative_model, (depth_renderer,))
 ground_truth = BodyPose(get_internal_node(get_choices(trace), :pose))
 (original, blurred, observed) = get_call_record(trace).retval
 
-for n in [10]#, 100, 1000]#, 10000]
+for n in [1, 10, 100]#, 1000]#, 10000]
 #for n in [100000]
     println(n)
+
+    # MCMC
+    #inference = MCMC(depth_renderer, n)
+    #visualize(wireframe_renderer, ground_truth, observed, samples, "vis-mcmc-$n.png")
+
+    # IS (prior)
     #inference = SIRPrior(depth_renderer, n)
-    inference = MCMC(depth_renderer, n)
+    #visualize(wireframe_renderer, ground_truth, observed, samples, "vis-sir-prior-$n.png")
+
+    # IS (NN)
+    inference = SIRNN(depth_renderer, n, proposal.neural_proposal)
     samples = BodyPose[]
-    for i=1:3
+    for i=1:4
         println("n=$n, replicate $i")
         push!(samples, infer(inference, observed))
     end
-    #visualize(wireframe_renderer, ground_truth, observed, samples, "vis-sir-prior-$n.png")
-    visualize(wireframe_renderer, ground_truth, observed, samples, "vis-mcmc-$n.png")
+    visualize(wireframe_renderer, ground_truth, observed, samples, "vis-sir-nn-large-59902-$n.png")
 end
 
 close(depth_renderer)

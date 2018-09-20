@@ -78,40 +78,6 @@ function Base.:+(a::BodyPose, b::BodyPose)
         a.heel_l_loc + b.heel_l_loc)
 end
 
-function add_columns!(pose::BodyPose, df::DataFrame)
-    df[:rot_z] = pose.rotation.z
-    df[:elbow_r_loc_x] = pose.elbow_r_loc.x
-    df[:elbow_r_loc_y] = pose.elbow_r_loc.y
-    df[:elbow_r_loc_z] = pose.elbow_r_loc.z
-    df[:elbow_l_loc_x] = pose.elbow_l_loc.x
-    df[:elbow_l_loc_y] = pose.elbow_l_loc.y
-    df[:elbow_l_loc_z] = pose.elbow_l_loc.z
-    df[:elbow_l_rot_z] = pose.elbow_l_rot.z
-    df[:elbow_r_rot_z] = pose.elbow_r_rot.z
-    df[:hip_loc_x] = pose.hip_loc.x
-    df[:hip_loc_y] = pose.hip_loc.y
-    df[:hip_loc_z] = pose.hip_loc.z
-    df[:heel_r_loc_x] = pose.heel_r_loc.x
-    df[:heel_r_loc_y] = pose.heel_r_loc.y
-    df[:heel_r_loc_z] = pose.heel_r_loc.z
-    df[:heel_l_loc_x] = pose.heel_l_loc.x
-    df[:heel_l_loc_y] = pose.heel_l_loc.y
-    df[:heel_l_loc_z] = pose.heel_l_loc.z
-end
-
-function square_error(pose1::BodyPose, pose2::BodyPose)
-    err = 0.
-    err += norm(pose1.rotation - pose2.rotation)^2
-    err += norm(pose1.elbow_r_loc - pose2.elbow_r_loc)^2
-    err += norm(pose1.elbow_l_loc - pose2.elbow_l_loc)^2
-    err += norm(pose1.elbow_r_rot - pose2.elbow_r_rot)^2
-    err += norm(pose1.elbow_l_rot - pose2.elbow_l_rot)^2
-    err += norm(pose1.hip_loc - pose2.hip_loc)^2
-    err += norm(pose1.heel_r_loc - pose2.heel_r_loc)^2
-    err += norm(pose1.heel_l_loc - pose2.heel_l_loc)^2
-    return err
-end
-
 ###############
 # scene prior #
 ###############
