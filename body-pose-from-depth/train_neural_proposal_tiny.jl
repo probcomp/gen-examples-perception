@@ -9,7 +9,7 @@ model = "HumanKTH.decimated.blend"
 const renderer = BodyPoseDepthRenderer(width, height, blender, model, port)
 
 arch = NetworkArchitecture(4, 4, 8, 32)
-proposal = make_neural_proposal(arch)
+proposal = make_neural_proposal(arch, neural_proposal_predict_beta)
 session = init_session!(proposal.network)
 params_fname_trunk = "/data/params_arch_4_4_8_32-$port"
 #as_default(GenTF.get_graph(proposal.network)) do

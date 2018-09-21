@@ -93,13 +93,8 @@ function make_update(net::TensorFlowFunction)
 end
 
 #@compiled @gen function neural_proposal_predict(@ad(outputs::Vector{Float64}))
-@gen function neural_proposal_predict(@ad(outputs::Vector{Float64})) # TODO checkme?
+@gen function neural_proposal_predict_beta(@ad(outputs::Vector{Float64}))
 
-    # TODO capture dependencies within e.g. right elbow using multivariate e.g.
-    # gaussian proposals (use Cholesky decomposition, parametrize by L) see
-    # Unconstrained Parameterizations for Variance-Covariance Matrices
-    # (Pinheiro et al.)
-    
     # global rotation
     @addr(beta(exp(outputs[1]), exp(outputs[2])), :rot_z)
 
@@ -133,6 +128,40 @@ end
     @addr(beta(exp(outputs[31]), exp(outputs[32])), :heel_l_loc_z)
 end
 
+@gen function neural_proposal_predict_normal(@ad(outputs::Vector{Float64}))
+
+    # global rotation
+    @addr(normal(outputs[1], exp(outputs[2])), :rot_z)
+
+    # right elbow location
+    @addr(normal(outputs[3], exp(outputs[4])), :elbow_r_loc_x)
+    @addr(normal(outputs[5], exp(outputs[6])), :elbow_r_loc_y)
+    @addr(normal(outputs[7], exp(outputs[8])), :elbow_r_loc_z)
+
+    # left elbow location
+    @addr(normal(outputs[11], exp(outputs[12])), :elbow_l_loc_x)
+    @addr(normal(outputs[13], exp(outputs[14])), :elbow_l_loc_y)
+    @addr(normal(outputs[15], exp(outputs[16])), :elbow_l_loc_z)
+
+    # right elbow rotation
+    @addr(normal(outputs[9], exp(outputs[10])), :elbow_r_rot_z)
+
+    # left elbow rotation
+    @addr(normal(outputs[17], exp(outputs[18])), :elbow_l_rot_z)
+
+    # hip
+    @addr(normal(outputs[19], exp(outputs[20])), :hip_loc_z)
+
+    # right heel
+    @addr(normal(outputs[21], exp(outputs[22])), :heel_r_loc_x)
+    @addr(normal(outputs[23], exp(outputs[24])), :heel_r_loc_y)
+    @addr(normal(outputs[25], exp(outputs[26])), :heel_r_loc_z)
+
+    # left heel
+    @addr(normal(outputs[27], exp(outputs[28])), :heel_l_loc_x)
+    @addr(normal(outputs[29], exp(outputs[30])), :heel_l_loc_y)
+    @addr(normal(outputs[31], exp(outputs[32])), :heel_l_loc_z)
+end
 
 struct NeuralProposal
     arch::NetworkArchitecture
@@ -142,7 +171,7 @@ struct NeuralProposal
     neural_proposal_batched::Generator
 end
 
-function make_neural_proposal(arch::NetworkArchitecture)
+function make_neural_proposal(arch::NetworkArchitecture, predictor::Gen.GenFunction)
     network = make_inference_network(arch)
     update = make_update(network)
 
@@ -155,7 +184,7 @@ function make_neural_proposal(arch::NetworkArchitecture)
             outputs::Matrix{Float64} = @addr($(QuoteNode(network))(image_flat), :network)
 
             # make prediction given inference network outputs
-            @addr(neural_proposal_predict(outputs[1,:]), :pose)
+            @addr($(QuoteNode(predictor))(outputs[1,:]), :pose)
         end
     end)
 
@@ -178,7 +207,7 @@ function make_neural_proposal(arch::NetworkArchitecture)
             
             # make prediction for each image given inference network outputs
             for i=1:batch_size
-                @addr(neural_proposal_predict(outputs[i,:]), :poses => i)
+                @addr($(QuoteNode(predictor))(outputs[i,:]), :poses => i)
             end
         end
     end)
@@ -234,3 +263,4 @@ function train_inference_network(num_batch::Int, batch_size::Int,
                 batch_callback)
     sgd_train_batch(generative_model, (renderer,), proposal.neural_proposal_batched, conf, verbose)
 end
+

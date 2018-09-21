@@ -60,6 +60,14 @@ trace = simulate(generative_model, (depth_renderer,))
 ground_truth = BodyPose(get_internal_node(get_choices(trace), :pose))
 (original, blurred, observed) = get_call_record(trace).retval
 
+nn_deterministic = NNMeanPredictor(proposal.network)
+nn_deterministic_sample = infer(nn_deterministic, observed)
+visualize(wireframe_renderer, ground_truth, observed, [nn_deterministic_sample],
+        "vis-nn-det-large-59902-mode.png")
+
+exit()
+
+
 for n in [1, 10, 100]#, 1000]#, 10000]
 #for n in [100000]
     println(n)
