@@ -169,6 +169,8 @@ struct NeuralProposal
     network_update::Tensor
     neural_proposal::Generator
     neural_proposal_batched::Generator
+    init_neural_proposal::Generator
+    step_neural_proposal::Generator
 end
 
 function make_neural_proposal(arch::NetworkArchitecture, predictor::Gen.GenFunction)
@@ -211,9 +213,31 @@ function make_neural_proposal(arch::NetworkArchitecture, predictor::Gen.GenFunct
             end
         end
     end)
-    
+
+    # for dynamic model
+    init_neural_proposal = gensym("init_neural_proposal")
+    eval(quote
+        # TODO make it compiled
+        @gen function $init_neural_proposal(@ad(image::Matrix{Float64}))
+            image_flat::Matrix{Float64} = reshape(image, 1, width * height)
+            outputs::Matrix{Float64} = @addr($(QuoteNode(network))(image_flat), :init_network)
+            @addr($(QuoteNode(predictor))(outputs[1,:]), :init_pose)
+        end
+    end)
+
+    step_neural_proposal = gensym("step_neural_proposal")
+    eval(quote
+        # TODO make it compiled
+        @gen function $step_neural_proposal(@ad(image::Matrix{Float64}))
+            image_flat::Matrix{Float64} = reshape(image, 1, width * height)
+            outputs::Matrix{Float64} = @addr($(QuoteNode(network))(image_flat), :networks => step)
+            @addr($(QuoteNode(predictor))(outputs[1,:]), :steps => step)
+        end
+    end)
+
     NeuralProposal(arch, network, update,
-        eval(neural_proposal), eval(neural_proposal_batched))
+        eval(neural_proposal), eval(neural_proposal_batched),
+        eval(init_neural_proposal), eval(step_neural_proposal))
 end
 
 
