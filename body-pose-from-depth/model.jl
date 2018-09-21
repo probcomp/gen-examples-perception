@@ -84,14 +84,31 @@ end
 
 # rescale values from [0, 1] to another interval
 scale(value, min, max) = min + (max - min) * value
+unscale(scaled, min, max) = (scaled - min) / (max - min)
+
 scale_rot(z) = Point3(0., 0., scale(z, -pi/4, pi/4))
+unscale_rot(pt::Point3) = unscale(pt.z, -pi/4, pi/4)
+
 scale_elbow_r_loc(x, y, z) = Point3(scale(x, -1, 0), scale(y, -1, 1), scale(z, -1, 1))
+unscale_elbow_r_loc(pt::Point3) = (unscale(pt.x, -1, 0), unscale(pt.y, -1, 1), unscale(pt.z, -1, 1))
+
 scale_elbow_r_rot(z) = Point3(0., 0., scale(z, 0, 2*pi))
+unscale_elbow_r_rot(pt::Point3) = unscale(pt.z, 0, 2*pi)
+
 scale_elbow_l_loc(x, y, z) = Point3(scale(x, 0, 1), scale(y, -1, 1), scale(z, -1, 1))
+unscale_elbow_l_loc(pt::Point3) = (unscale(pt.x, 0, 1), unscale(pt.y, -1, 1), unscale(pt.z, -1, 1))
+
 scale_elbow_l_rot(z) = Point3(0., 0., scale(z, 0, 2*pi))
+unscale_elbow_l_rot(pt::Point3) = unscale(pt.z, 0, 2*pi)
+
 scale_hip_loc(z) = Point3(0., 0., scale(z, -0.35, 0))
+unscale_hip_loc(pt::Point3) = unscale(pt.z, -0.35, 0)
+
 scale_heel_r_loc(x, y, z) = Point3(scale(x, -0.45, 0.1), scale(y, -1, 0.5), scale(z, -0.2, 0.2))
+unscale_heel_r_loc(pt::Point3) = (unscale(pt.x, -0.45, 0.1), unscale(pt.y, -1, 0.5), unscale(pt.z, -0.2, 0.2))
+
 scale_heel_l_loc(x, y, z) = Point3(scale(x, -0.1, 0.45), scale(y, -1, 0.5), scale(z, -0.2, 0.2))
+unscale_heel_l_loc(pt::Point3) = (unscale(pt.x, -0.1, 0.45), unscale(pt.y, -1, 0.5), unscale(pt.z, -0.2, 0.2))
 
 #@compiled @gen function body_pose_model()
 @gen function body_pose_model()

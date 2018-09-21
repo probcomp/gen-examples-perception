@@ -81,8 +81,8 @@ end
 
 (::SpikeSlab)(center, width, spike_mass) = random(SpikeSlab(), center, width, spike_mass)
 
-has_output_grad(::SpikeSlab) = true
-has_argument_grads(::SpikeSlab) = (true, false, false)
-get_static_argument_types(::SpikeSlab) = [Float64, Float64, Float64]
+Gen.has_output_grad(::SpikeSlab) = true
+Gen.has_argument_grads(::SpikeSlab) = (true, false, false)
+Gen.get_static_argument_types(::SpikeSlab) = [Float64, Float64, Float64]
 
 export spike_slab
