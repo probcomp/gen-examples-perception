@@ -79,16 +79,16 @@ images = Matrix{Float64}[choices[:init_image] for i=1:50]
 
 # run repeated importance sampling using deep net proposal with 10 particles
 #println("running importance sampling on each frame..")
-#movie_sir_nn = MovieSIRNN(depth_renderer, 10, proposal.neural_proposal)
+#movie_sir_nn = MovieSIRNN(depth_renderer, 100, proposal.neural_proposal)
 #poses = infer(movie_sir_nn, images)
 #poses_to_wireframe_movie(wireframe_renderer, poses, "movie-sir-nn-10")
 
 # run particle filter
 println("running particle filter..")
-neural_pf = NeuralParticleFiltering(depth_renderer, 10, 5,
+neural_pf = NeuralParticleFiltering(depth_renderer, 100, 50,
     proposal.init_neural_proposal, proposal.step_neural_proposal)
 poses = infer(neural_pf, images)
-poses_to_wireframe_movie(wireframe_renderer, poses, "movie-pf-nn-10")
+poses_to_wireframe_movie(wireframe_renderer, poses, "movie-pf-nn-100")
 
 #for n in [1, 10, 100]#, 1000]#, 10000]
 #for n in [100000]

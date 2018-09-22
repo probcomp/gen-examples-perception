@@ -228,10 +228,10 @@ function make_neural_proposal(arch::NetworkArchitecture, predictor::Gen.GenFunct
     step_neural_proposal = gensym("step_neural_proposal")
     eval(quote
         # TODO make it compiled
-        @gen function $step_neural_proposal(@ad(image::Matrix{Float64}))
+        @gen function $step_neural_proposal(@ad(image::Matrix{Float64}), t::Int)
             image_flat::Matrix{Float64} = reshape(image, 1, width * height)
-            outputs::Matrix{Float64} = @addr($(QuoteNode(network))(image_flat), :networks => step)
-            @addr($(QuoteNode(predictor))(outputs[1,:]), :steps => step)
+            outputs::Matrix{Float64} = @addr($(QuoteNode(network))(image_flat), :networks => t)
+            @addr($(QuoteNode(predictor))(outputs[1,:]), :steps => t)
         end
     end)
 

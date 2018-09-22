@@ -53,9 +53,9 @@ function infer(program::NeuralParticleFiltering, images::Vector{Matrix{Float64}}
     function get_step_observations_and_proposal_args(t::Int, prev_model_trace)
         @assert t > 1
         hmm_choices = DynamicChoiceTrie()
-        set_internal_node!(hmm_choices, t - 1, StaticChoiceTrie((image=images[t],), NamedTuple()))
+        set_internal_node!(hmm_choices, t-1, StaticChoiceTrie((image=images[t],), NamedTuple()))
         observations = StaticChoiceTrie(NamedTuple(), (steps=hmm_choices,))
-        proposal_args = (images[t],)
+        proposal_args = (images[t],t-1)
         (observations, proposal_args)
     end
 
@@ -65,7 +65,7 @@ function infer(program::NeuralParticleFiltering, images::Vector{Matrix{Float64}}
         get_init_observations_and_proposal_args,
         get_step_observations_and_proposal_args,
         program.init_proposal,
-        program.step_proposal)
+        program.step_proposal; verbose=true)
 
     idx = categorical(exp.(log_normalized_weights))
     trace = traces[idx]
@@ -73,7 +73,7 @@ function infer(program::NeuralParticleFiltering, images::Vector{Matrix{Float64}}
     poses = Vector{BodyPose}(undef, length(images))
     poses[1] = BodyPose(get_internal_node(choices, :init_pose))
     for i=2:length(images)
-        poses[i] = BodyPose(get_internal_node(choices, :steps => i))
+        poses[i] = BodyPose(get_internal_node(choices, :steps => (i-1)))
     end
     poses
 end
